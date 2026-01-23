@@ -1,0 +1,40 @@
+models:
+  glm_4_6v:
+    name: GLM-4.6V
+    description: 旗舰版 - 最新一代多模态模型，性能最强
+    context_length: 128000
+    temperature: 0.1
+    max_tokens: 4096
+    recommended: true
+  glm_4_6v_flashx:
+    name: GLM-4.6V-FlashX
+    description: 轻量高速版 - 速度更快，适合快速响应场景
+    context_length: 128000
+    temperature: 0.1
+    max_tokens: 4096
+  glm_4_6v_flash:
+    name: GLM-4.6V-Flash
+    description: 完全免费 - 基础性能，免费使用
+    context_length: 128000
+    temperature: 0.1
+    max_tokens: 4096
+  glm_4_1v_thinking:
+    name: GLM-4.1V-Thinking
+    description: 思维链增强版 - 支持复杂推理
+    context_length: 128000
+    temperature: 0.1
+    max_tokens: 4096
+  glm_4_1v_thinking_flash:
+    name: GLM-4.1V-Thinking-Flash
+    description: 思维链轻量版 - 快速推理
+    context_length: 128000
+    temperature: 0.1
+    max_tokens: 1024
+default:
+  model: glm_4_6v
+  temperature: 0.1
+  max_tokens: 4096
+gui_agent:
+  model: glm_4_6v
+  temperature: 0.1
+  max_tokens: 4096
