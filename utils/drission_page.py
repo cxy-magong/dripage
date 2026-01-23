@@ -68,9 +68,8 @@ def find_and_click_random(driver:ChromiumElement|ChromiumPage, locator, *args, *
 
 def main():
     page = create_browser()
-    page._driver._websocket_url
     page.get("chrome://version")
-    print(page._driver._websocket_url)
+    print(page.browser._driver.address)
     
 if __name__ == "__main__":
     main()

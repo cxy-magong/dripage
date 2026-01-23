@@ -5,11 +5,11 @@ import socket
 from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
-from utils.drission_page import create_browser
+from .drission_page import create_browser
 
 class ChromeManager:
     def __init__(self):
-        output_dir = Path(__file__).parent / "output"
+        output_dir = Path(__file__).parent.parent / "output"
         output_dir.mkdir(exist_ok=True)
         self.state_file = output_dir / "chrome_manager_state.json"
         self.browser = None
