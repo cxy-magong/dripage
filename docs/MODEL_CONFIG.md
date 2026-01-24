@@ -14,6 +14,7 @@
 - **上下文长度**: 128,000 tokens
 - **温度**: 0.1
 - **最大 Token**: 4,096
+- **深度思考**: ✓ 支持，默认禁用
 - **推荐**: ✓ 默认推荐
 
 #### 2. GLM-4.6V-FlashX
@@ -22,6 +23,7 @@
 - **上下文长度**: 128,000 tokens
 - **温度**: 0.1
 - **最大 Token**: 4,096
+- **深度思考**: ✓ 支持，默认禁用
 
 #### 3. GLM-4.6V-Flash（完全免费）
 - **模型 ID**: `glm_4_6v_flash`
@@ -29,6 +31,7 @@
 - **上下文长度**: 128,000 tokens
 - **温度**: 0.1
 - **最大 Token**: 4,096
+- **深度思考**: ✗ 不支持
 
 ### GLM-4.1V-Thinking 系列
 
@@ -38,6 +41,7 @@
 - **上下文长度**: 128,000 tokens
 - **温度**: 0.1
 - **最大 Token**: 4,096
+- **深度思考**: ✓ 支持，默认禁用
 
 #### 5. GLM-4.1V-Thinking-Flash
 - **模型 ID**: `glm_4_1v_thinking_flash`
@@ -45,22 +49,177 @@
 - **上下文长度**: 128,000 tokens
 - **温度**: 0.1
 - **最大 Token**: 1,024
+- **深度思考**: ✓ 支持，默认禁用
 
 ## 默认配置
 
 ### GUI Agent 配置
-```json
-{
-  "model": "glm_4_6v",
-  "temperature": 0.1,
-  "max_tokens": 4096
-}
+```yaml
+gui_agent:
+  model: glm_4_6v
+  temperature: 0.1
+  max_tokens: 4096
+  thinking_enabled: false  # 默认不启用深度思考
 ```
 
 **说明**:
 - 使用旗舰版 `GLM-4.6V` 模型
 - 温度设置为 0.1（低温度更准确）
 - 最大 token 数为 4096
+- 深度思考默认禁用
+
+## 深度思考（Thinking）功能
+
+### 概述
+深度思考是 GLM 模型的思维链推理功能，可以让模型展示推理过程，提高复杂任务的准确性。
+
+### 支持的模型
+以下模型支持深度思考功能：
+- ✓ GLM-4.6V
+- ✓ GLM-4.6V-FlashX
+- ✓ GLM-4.1V-Thinking
+- ✓ GLM-4.1V-Thinking-Flash
+
+不支持：
+- ✗ GLM-4.6V-Flash
+
+### 启用深度思考
+
+#### 方法 1: 修改配置文件
+编辑 `config/models_config.yaml`：
+
+```yaml
+gui_agent:
+  model: glm_4_1v_thinking  # 使用 Thinking 模型
+  temperature: 0.1
+  max_tokens: 4096
+  thinking_enabled: true  # 启用深度思考
+```
+
+#### 方法 2: 在代码中动态启用
+```python
+from utils.model_config import get_config
+
+config = get_config()
+
+# 检查并获取 thinking 配置
+model_key = 'glm_4_1v_thinking'
+thinking_config = config.get_thinking_config(model_key)
+
+if thinking_config:
+    # 在 API 调用中使用 thinking 参数
+    response = client.chat.completions.create(
+        model=config.get_model_name(model_key),
+        messages=[...],
+        thinking=thinking_config  # {"type": "enabled"}
+    )
+```
+
+#### 方法 3: 使用 Thinking 系列模型并手动启用
+```python
+from zai import ZhipuAiClient
+
+client = ZhipuAiClient(api_key=os.environ.get('ZAI_API_KEY'))
+
+response = client.chat.completions.create(
+    model="GLM-4.1V-Thinking-Flash",
+    messages=[...],
+    thinking={
+        "type": "enabled"  # 手动启用
+    }
+)
+
+# 读取推理过程
+message = response.choices[0].message
+if hasattr(message, 'reasoning_content') and message.reasoning_content:
+    print(f"推理过程: {message.reasoning_content}")
+print(f"答案: {message.content}")
+```
+
+### 读取推理过程
+启用深度思考后，模型会返回 `reasoning_content` 属性：
+
+```python
+message = response.choices[0].message
+
+# 最终答案
+final_answer = message.content
+
+# 推理过程（如果有）
+if hasattr(message, 'reasoning_content') and message.reasoning_content:
+    reasoning_process = message.reasoning_content
+    print(f"推理过程: {reasoning_process}")
+```
+
+### 配置说明
+```yaml
+models:
+  glm_4_1v_thinking:
+    name: GLM-4.1V-Thinking
+    description: 思维链增强版 - 支持复杂推理
+    context_length: 128000
+    temperature: 0.1
+    max_tokens: 4096
+    thinking_supported: true   # 是否支持 thinking
+    thinking_enabled: false    # 默认是否启用
+```
+
+**配置项说明**：
+- `thinking_supported`: 模型是否支持深度思考功能
+- `thinking_enabled`: 默认是否启用（可被 gui_agent 或 default 配置覆盖）
+
+### API 调用示例
+
+#### 启用深度思考
+```python
+from utils.model_config import get_config
+from zai import ZhipuAiClient
+
+config = get_config()
+model_key = 'glm_4_1v_thinking'
+
+# 获取 thinking 配置
+thinking_config = config.get_thinking_config(model_key, context='gui_agent')
+
+# 构建 API 调用参数
+api_params = {
+    "model": config.get_model_name(model_key),
+    "messages": [...],
+    "temperature": 0.1,
+    "max_tokens": 4096
+}
+
+# 如果启用了 thinking，添加 thinking 参数
+if thinking_config:
+    api_params["thinking"] = thinking_config
+
+# 发送请求
+response = client.chat.completions.create(**api_params)
+
+# 处理响应
+message = response.choices[0].message
+if thinking_config:
+    print(f"推理过程: {message.reasoning_content}")
+print(f"答案: {message.content}")
+```
+
+#### 检查模型是否支持 thinking
+```python
+from utils.model_config import get_config
+
+config = get_config()
+model_key = 'glm_4_1v_thinking'
+
+if config.is_thinking_supported(model_key):
+    print(f"{config.get_model_name(model_key)} 支持深度思考")
+
+    if config.is_thinking_enabled(model_key, context='gui_agent'):
+        print("深度思考已启用")
+    else:
+        print("深度思考已禁用")
+else:
+    print("该模型不支持深度思考")
+```
 
 ## 使用配置文件
 

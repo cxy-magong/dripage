@@ -1,0 +1,13 @@
+# MCP Server Configuration
+
+browser:
+  address: "127.0.0.1:19222"
+
+output:
+  directory: "output"
+  images_subdir: "images"
+
+vision:
+  model: "glm-4v-flash"
+  temperature: 0.7
+  max_tokens: 1024
