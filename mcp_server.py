@@ -36,6 +36,7 @@ from tools import (
     coordinate_convert_box,
     coordinate_parse_and_convert,
     coordinate_convert_from_image,
+    draw_bounding_boxes,
 )
 
 
@@ -499,6 +500,64 @@ def coordinate_convert_from_image_tool(
         JSON string with converted coordinates
     """
     return coordinate_convert_from_image.func(text, image_path)
+
+
+@mcp.tool
+def agent_find_elements_tool(
+    query: str,
+    image_path: Optional[str] = None
+) -> str:
+    """Use intelligent agent to find elements in image.
+
+    This tool automatically:
+    1. Calls vision analysis to analyze the image
+    2. Parses coordinates from analysis results
+    3. Automatically converts coordinates to original image coordinate system
+    4. Returns final element position information
+
+    Args:
+        query: Description of elements to find (e.g., "search box", "search button")
+        image_path: Path to image file (optional, takes current screenshot if not provided)
+
+    Returns:
+        JSON format element position information
+    """
+    return agent_find_elements.func(query, image_path=image_path)
+
+
+@mcp.tool
+def draw_bounding_boxes_tool(
+    image_path: str,
+    boxes: List[List[int]],
+    labels: Optional[List[str]] = None,
+    output_path: Optional[str] = None,
+    line_width: int = 3,
+    line_color: str = "#FF0000",
+    font_size: int = 16,
+) -> str:
+    """Draw bounding boxes on image for visualizing detection results.
+
+    Args:
+        image_path: Input image path
+        boxes: List of bounding boxes, each in format [xmin, ymin, xmax, ymax]
+        labels: Optional, list of labels for each box (same length as boxes)
+        output_path: Output image path (optional, defaults to _annotated suffix)
+        line_width: Line width (default 3)
+        line_color: Line color in hex format (default "#FF0000" red)
+        font_size: Label font size (default 16)
+
+    Returns:
+        JSON format with output path and drawing info
+    """
+    return draw_bounding_boxes.func(
+        image_path=image_path,
+        boxes=boxes,
+        labels=labels,
+        output_path=output_path,
+        line_width=line_width,
+        line_color=line_color,
+        font_size=font_size
+    )
 
 
 if __name__ == "__main__":
