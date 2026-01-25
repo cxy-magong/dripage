@@ -470,6 +470,7 @@ dependencies = [
     { name = "langchain" },
     { name = "langchain-community" },
     { name = "langchain-core" },
+    { name = "langchain-runtime" },
     { name = "langgraph" },
     { name = "loguru" },
     { name = "markitdown" },
@@ -488,6 +489,7 @@ requires-dist = [
     { name = "langchain", specifier = ">=1.2.7" },
     { name = "langchain-community", specifier = ">=0.4.1" },
     { name = "langchain-core", specifier = ">=1.2.7" },
+    { name = "langchain-runtime", specifier = ">=0.1.1" },
     { name = "langgraph", specifier = ">=1.0.7" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "markitdown", specifier = ">=0.1.4" },
@@ -900,6 +902,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a2/0e/664d8d81b3493e09cbab72448d2f9d693d1fa5aa2bcc488602203a9b6da0/langchain_core-1.2.7.tar.gz", hash = "sha256:e1460639f96c352b4a41c375f25aeb8d16ffc1769499fb1c20503aad59305ced", size = 837039, upload-time = "2026-01-09T17:44:25.505Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6e/6f/34a9fba14d191a67f7e2ee3dbce3e9b86d2fa7310e2c7f2c713583481bd2/langchain_core-1.2.7-py3-none-any.whl", hash = "sha256:452f4fef7a3d883357b22600788d37e3d8854ef29da345b7ac7099f33c31828b", size = 490232, upload-time = "2026-01-09T17:44:24.236Z" },
+]
+
+[[package]]
+name = "langchain-runtime"
+version = "0.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0e/39/24432af8961467ea8405f287807183c0b8807ea109bba6167f9afba2ef5c/langchain_runtime-0.1.1.tar.gz", hash = "sha256:c5bf13703b182f3ff23bdd4d44710c35b91274d23ace5942d6fae4e6ca530af2", size = 640, upload-time = "2024-10-18T16:14:41.153Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f5/36/2f547991e6ea5ad7788c802b7cbd0718a6fc02aef319b1d3a583cd91ee02/langchain_runtime-0.1.1-py3-none-any.whl", hash = "sha256:9ab6f6f658dfad48fedb5d8c4ab47bd99ec903ab1f5848609cd0f18cb6cb9b4f", size = 1117, upload-time = "2024-10-18T16:14:39.561Z" },
 ]
 
 [[package]]

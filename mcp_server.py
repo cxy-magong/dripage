@@ -23,6 +23,21 @@ from fastmcp import FastMCP
 from zhipuai import ZhipuAI
 from utils.drission_page import create_browser
 
+# Import new tools from tools directory
+from tools import (
+    browser_navigate,
+    browser_get_current_page,
+    browser_screenshot,
+    browser_click,
+    browser_input,
+    browser_press_key,
+    browser_scroll,
+    vision_analyze,
+    coordinate_convert_box,
+    coordinate_parse_and_convert,
+    coordinate_convert_from_image,
+)
+
 
 # Load configuration from config directory
 config_path = project_dir / 'config' / 'mcp_config.yaml'
@@ -244,15 +259,13 @@ async def encode_image_async(image_path: Path) -> str:
 @mcp.tool
 async def vision(
     query: str,
-    image_path: Optional[str] = None,
-    model: Optional[str] = None
+    image_path: Optional[str] = None
 ) -> str:
     """Analyze images using GLM-4V vision model.
 
     Args:
         query: The query/question about the image
         image_path: Path to image file (optional, uses current screenshot if not provided)
-        model: Vision model to use (default: from config or glm-4v-flash)
 
     Returns:
         str: Vision analysis result
@@ -262,9 +275,6 @@ async def vision(
         api_key = os.environ.get('ZAI_API_KEY')
         if not api_key:
             raise ValueError("ZAI_API_KEY not found in environment variables")
-
-        # Use provided model or default from config
-        vision_model = model or DEFAULT_VISION_MODEL
 
         # Initialize client
         client = ZhipuAI(api_key=api_key)
@@ -282,7 +292,7 @@ async def vision(
 
             # Save to output directory
             timestamp = generate_timestamp()
-            img_path = OUTPUT_DIR / f"temp_vision_{timestamp}.png"
+            img_path = OUTPUT_DIR / f"vision_{timestamp}.png"
             with open(img_path, 'wb') as f:
                 f.write(screenshot_data)
 
@@ -291,7 +301,7 @@ async def vision(
 
         # Send to vision model
         response = client.chat.completions.create(
-            model=vision_model,
+            model=DEFAULT_VISION_MODEL,
             messages=[
                 {
                     "role": "user",
@@ -317,6 +327,178 @@ async def vision(
 
     except Exception as e:
         raise RuntimeError(f"Vision analysis failed: {e}")
+
+
+# ==================== Browser Tools from tools/ directory ====================
+
+@mcp.tool
+def browser_navigate_tool(url: str) -> str:
+    """Navigate browser to specified URL.
+
+    Args:
+        url: The URL to navigate to
+
+    Returns:
+        Success message with page title
+    """
+    # Call the tool function directly
+    return browser_navigate.func(url)
+
+
+@mcp.tool
+def browser_get_current_page_tool() -> str:
+    """Get current page information.
+
+    Returns:
+        JSON string with page title and URL
+    """
+    return browser_get_current_page.func()
+
+
+@mcp.tool
+def browser_screenshot_tool(full_page: bool = True, save: bool = True) -> str:
+    """Take a screenshot of the current page.
+
+    Args:
+        full_page: Whether to capture the full page (default: True)
+        save: Whether to save the screenshot (default: True)
+
+    Returns:
+        Path to the saved screenshot file
+    """
+    return browser_screenshot.func(full_page=full_page, save=save)
+
+
+@mcp.tool
+def browser_click_tool(x: int, y: int) -> str:
+    """Click at specified coordinates on the page.
+
+    Args:
+        x: X coordinate
+        y: Y coordinate
+
+    Returns:
+        Success message
+    """
+    return browser_click.func(x, y)
+
+
+@mcp.tool
+def browser_input_tool(x: int, y: int, text: str, clear: bool = True) -> str:
+    """Click input box at coordinates and input text.
+
+    Args:
+        x: X coordinate of input box
+        y: Y coordinate of input box
+        text: Text to input
+        clear: Whether to clear existing text first (default: True)
+
+    Returns:
+        Success message
+    """
+    return browser_input.func(x, y, text, clear=clear)
+
+
+@mcp.tool
+def browser_press_key_tool(key: str, times: int = 1) -> str:
+    """Press keyboard keys.
+
+    Args:
+        key: Key name (e.g., 'enter', 'escape', 'space', 'tab')
+        times: Number of times to press (default: 1)
+
+    Returns:
+        Success message
+    """
+    return browser_press_key.func(key, times=times)
+
+
+@mcp.tool
+def browser_scroll_tool(direction: str = "down", amount: int = 500) -> str:
+    """Scroll the page.
+
+    Args:
+        direction: Scroll direction, 'up' or 'down' (default: 'down')
+        amount: Scroll amount in pixels (default: 500)
+
+    Returns:
+        Success message
+    """
+    return browser_scroll.func(direction=direction, amount=amount)
+
+
+# ==================== Agent Tools from tools/ directory ====================
+
+@mcp.tool
+def vision_analyze_tool(
+    query: str,
+    image_path: Optional[str] = None
+) -> str:
+    """Analyze images using GLM-4V vision model.
+
+    Args:
+        query: The query/question about the image
+        image_path: Path to image file (optional, uses current screenshot if not provided)
+
+    Returns:
+        Vision analysis result
+    """
+    return vision_analyze.func(query, image_path=image_path)
+
+
+@mcp.tool
+def coordinate_convert_box_tool(
+    box: List[int],
+    original_width: int,
+    original_height: int,
+) -> str:
+    """Convert GLM-4V coordinates back to original image coordinate system.
+
+    Args:
+        box: Bounding box from GLM-4V [xmin, ymin, xmax, ymax]
+        original_width: Original image width
+        original_height: Original image height
+
+    Returns:
+        JSON string with converted coordinates
+    """
+    return coordinate_convert_box.func(box, original_width, original_height)
+
+
+@mcp.tool
+def coordinate_parse_and_convert_tool(
+    text: str,
+    original_width: int,
+    original_height: int,
+) -> str:
+    """Parse coordinates from text and convert back to original image coordinate system.
+
+    Args:
+        text: Text containing coordinates (e.g., from vision model response)
+        original_width: Original image width
+        original_height: Original image height
+
+    Returns:
+        JSON string with converted coordinates
+    """
+    return coordinate_parse_and_convert.func(text, original_width, original_height)
+
+
+@mcp.tool
+def coordinate_convert_from_image_tool(
+    text: str,
+    image_path: str,
+) -> str:
+    """Parse coordinates from text and convert back based on image dimensions.
+
+    Args:
+        text: Text containing coordinates (e.g., from vision model response)
+        image_path: Path to image file (used to get original dimensions)
+
+    Returns:
+        JSON string with converted coordinates
+    """
+    return coordinate_convert_from_image.func(text, image_path)
 
 
 if __name__ == "__main__":

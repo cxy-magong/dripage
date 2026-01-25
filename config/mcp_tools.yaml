@@ -1,0 +1,48 @@
+# MCP Tools Configuration
+
+MCP tools for LangChain browser agent
+MCP_TOOLS:
+  - name: "browser_navigate"
+    description: "Navigate browser to specified URL"
+    input_schema:
+      type: object
+      properties:
+        url:
+          type: string
+          description: "The URL to navigate to"
+      required: ["url"]
+
+  - name: "browser_screenshot"
+    description: "Take a screenshot of the current page"
+    input_schema:
+      type: object
+      properties: {}
+
+  - name: "browser_click"
+    description: "Click at specified coordinates"
+    input_schema:
+      type: object
+      properties:
+        x:
+          type: integer
+          description: "X coordinate"
+        y:
+          type: integer
+          description: "Y coordinate"
+      required: ["x", "y"]
+
+  - name: "browser_input"
+    description: "Click input box and input text"
+    input_schema:
+      type: object
+      properties:
+        x:
+          type: integer
+          description: "X coordinate of input box"
+        y:
+          type: integer
+          description: "Y coordinate of input box"
+        text:
+          type: string
+          description: "Text to input"
+      required: ["x", "y", "text"]
