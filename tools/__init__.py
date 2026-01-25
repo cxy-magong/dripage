@@ -24,6 +24,7 @@ from tools.agent_tools import (
     coordinate_convert_box,
     coordinate_parse_and_convert,
     coordinate_convert_from_image,
+    locate_element,
     CoordinateConverter,
     get_config as get_agent_config,
 )
@@ -48,6 +49,7 @@ __all__ = [
     'coordinate_convert_box',
     'coordinate_parse_and_convert',
     'coordinate_convert_from_image',
+    'draw_bounding_boxes',
     'CoordinateConverter',
     'get_agent_config',
 ]
