@@ -30,13 +30,13 @@ Server will start at `http://127.0.0.1:8000`
 ## Available Tools
 
 ### 1. `screenshot`
-Take a screenshot of the current page.
+Take a screenshot of current page.
 
 **Parameters:**
 - None (captures full page)
 
 **Returns:**
-- File path to saved screenshot in `output/images/`
+- File path to saved screenshot in `output/`
 
 **Example:**
 ```json
@@ -47,44 +47,100 @@ Take a screenshot of the current page.
 ```
 
 ### 2. `get`
-Navigate to a URL.
+Navigate to a URL or get current page info, save in specified format(s). Supports concurrent processing of multiple formats.
 
 **Parameters:**
-- `url` (required): The webpage URL to navigate to
+- `url` (optional): The webpage URL to navigate to. If not provided, returns current page info (title and URL) as JSON
+- `formats` (optional): Output format(s) - can be single format (string) or list of formats:
+                 "markdown", "html", "img", "mhtml"
+                 If not provided, defaults to ["markdown"]
 
 **Returns:**
-- Success message
+- Single file path (string) for single format
+- JSON array with multiple file paths for multiple formats (concurrent processing)
+- JSON with page title if URL not provided
 
-**Example:**
+**Examples:**
+```json
+// Get current page info
+{
+  "name": "get",
+  "arguments": {}
+}
+
+// Navigate and save as markdown (single format)
+{
+  "name": "get",
+  "arguments": {
+    "url": "https://example.com",
+    "formats": "markdown"
+  }
+}
+
+// Navigate and save as multiple formats (concurrent)
+{
+  "name": "get",
+  "arguments": {
+    "url": "https://example.com",
+    "formats": ["markdown", "html", "img"]
+  }
+}
+
+// Navigate and save as all formats (concurrent)
+{
+  "name": "get",
+  "arguments": {
+    "url": "https://example.com",
+    "formats": ["markdown", "html", "img", "mhtml"]
+  }
+}
+```
+
+**Response Examples:**
+
+Single format:
 ```json
 {
   "name": "get",
   "arguments": {
-    "url": "https://example.com"
+    "url": "https://example.com",
+    "formats": "markdown"
   }
 }
 ```
+**Result:**
+```
+G:\code\agent-use\dripage\output\page_20260125_123456.md
+```
 
-### 3. `get2markdown`
-Convert a webpage URL to markdown format.
-
-**Parameters:**
-- `url` (required): The webpage URL to convert
-
-**Returns:**
-- Markdown content of webpage
-
-**Example:**
+Multiple formats (concurrent processing):
 ```json
 {
-  "name": "get2markdown",
+  "name": "get",
   "arguments": {
-    "url": "https://example.com"
+    "url": "https://example.com",
+    "formats": ["markdown", "html", "img"]
   }
 }
 ```
+**Result:**
+```json
+{
+  "files": [
+    "G:\\code\\agent-use\\dripage\\output\\page_20260125_123456.md",
+    "G:\\code\\agent-use\\dripage\\output\\page_20260125_123456.html",
+    "G:\\code\\agent-use\\dripage\\output\\page_20260125_123456.png"
+  ],
+  "count": 3,
+  "formats": ["markdown", "html", "img"]
+}
+```
 
-### 4. `vision`
+**Performance:**
+- Single format: ~0.2-1.5s
+- Multiple formats (concurrent): ~0.3-0.4s (all formats processed in parallel)
+
+### 3. `vision`
 Analyze images using GLM-4V vision model.
 
 **Parameters:**
@@ -128,9 +184,20 @@ npx mcporter list --config config/mcporter.json
 ```bash
 # List all tools
 npx mcporter list --config config/mcporter-http.json
+mcporter list --config config/mcporter-http.json
 mcporter list dripage --config config/mcporter-http.json --schema
-# Call a tool
-npx mcporter call --config config/mcporter-http.json dripage.get url:https://example.com
+
+# Get current page info
+npx mcporter call --config config/mcporter-http.json dripage.get
+
+# Navigate and save as markdown (single format)
+npx mcporter call --config config/mcporter-http.json dripage.get url:https://example.com formats:markdown
+
+# Navigate and save as multiple formats (concurrent)
+npx mcporter call --config config/mcporter-http.json dripage.get url:https://example.com formats:'["markdown", "html", "img"]'
+
+# Navigate and save as all formats (concurrent)
+npx mcporter call --config config/mcporter-http.json dripage.get url:https://example.com formats:'["markdown", "html", "img", "mhtml"]'
 
 # Test screenshot
 npx mcporter call --config config/mcporter-http.json dripage.screenshot
@@ -169,7 +236,6 @@ browser:
 
 output:
   directory: "output"
-  images_subdir: "images"
 
 vision:
   model: "glm-4v-flash"
@@ -179,7 +245,16 @@ vision:
 
 ## Output
 
-Screenshots and images are saved to `output/images/` directory (configurable in `config/mcp_config.yaml`).
+All files (screenshots, HTML, Markdown, images, MHTML) are saved to `output/` directory (configurable in `config/mcp_config.yaml`).
+
+**File naming format:** `{type}_YYYYMMDD_HHMMSS.{ext}`
+
+Examples:
+- `screenshot_20260125_123456.png`
+- `page_20260125_123456.md`
+- `page_20260125_123456.html`
+- `page_20260125_123456.png`
+- `page_20260125_123456.mhtml`
 
 ## Browser
 
