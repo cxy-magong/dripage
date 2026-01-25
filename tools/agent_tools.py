@@ -401,6 +401,7 @@ def coordinate_convert_box_with_runtime(
     Returns:
         Command 对象，用于更新 runtime.state 中的 converted_coordinates
     """
+    config = get_config()
     try:
         # 从 runtime.state 获取图像尺寸
         if runtime is None:
@@ -457,6 +458,7 @@ def coordinate_convert_point_with_runtime(
     Returns:
         Command 对象，用于更新 runtime.state 中的 converted_coordinates
     """
+    config = get_config()
     try:
         # 从 runtime.state 获取图像尺寸
         if runtime is None:
@@ -678,12 +680,32 @@ def locate_element(
     if config.logging:
         logger.info(f"定位元素: query='{query}', image_path={image_path}")
 
+    # 如果 runtime 为 None，创建临时的 ToolRuntime
+    if runtime is None:
+        logger.info("runtime is None，创建临时 ToolRuntime")
+        # 使用普通字典而不是 TypedDict，以便可以动态更新
+        state = {
+            "image_path": None,
+            "image_width": None,
+            "image_height": None,
+            "vision_analysis": None,
+            "converted_coordinates": None
+        }
+        runtime = ToolRuntime(
+            state=state,
+            context=None,
+            tool_call_id="",
+            store=None,
+            stream_writer=lambda _: None,
+            config={}
+        )
+
     try:
         # 步骤 1: 调用 vision_analyze 获取视觉结果
         if image_path:
-            vision_result = vision_analyze.invoke({"query": query, "image_path": image_path}, runtime=runtime)
+            vision_result = vision_analyze.func(query, image_path=image_path, runtime=runtime)
         else:
-            vision_result = vision_analyze.invoke({"query": query, "image_path": None}, runtime=runtime)
+            vision_result = vision_analyze.func(query, image_path=None, runtime=runtime)
 
         # 获取 API key
         api_key = os.environ.get('ZAI_API_KEY')
@@ -695,7 +717,7 @@ def locate_element(
         sub_model = ChatOpenAI(
             model=config.agent_model,
             api_key=api_key,
-            base_url=os.getenv("ZAI_API_BASE"),
+            base_url=os.getenv("ZAI_API_CODING"),
             temperature=config.agent_temperature,
         )
 
@@ -723,17 +745,23 @@ def locate_element(
         
         # 获取转换结果
         converted_result = response.content
-        
+        logger.info(f"模型返回: {response}")
         # 手动并发调用工具（解析 tool_calls）
         tool_results = []
         if hasattr(response, 'tool_calls') and response.tool_calls:
             for tool_call in response.tool_calls:
                 if tool_call['name'] == 'coordinate_convert_box_with_runtime':
-                    result = coordinate_convert_box_with_runtime.invoke(tool_call['args'], runtime=runtime)
-                    tool_results.append({"tool": "coordinate_convert_box_with_runtime", "result": result})
+                    # 使用 .func() 方法直接调用底层函数，传递 runtime 参数
+                    box = tool_call['args']['box']
+                    result = coordinate_convert_box_with_runtime.func(box, runtime=runtime)
+                    # 提取 Command 对象中的 update 属性
+                    tool_results.append({"tool": "coordinate_convert_box_with_runtime", "result": result.update})
                 elif tool_call['name'] == 'coordinate_convert_point_with_runtime':
-                    result = coordinate_convert_point_with_runtime.invoke(tool_call['args'], runtime=runtime)
-                    tool_results.append({"tool": "coordinate_convert_point_with_runtime", "result": result})
+                    # 使用 .func() 方法直接调用底层函数，传递 runtime 参数
+                    point = tool_call['args']['point']
+                    result = coordinate_convert_point_with_runtime.func(point, runtime=runtime)
+                    # 提取 Command 对象中的 update 属性
+                    tool_results.append({"tool": "coordinate_convert_point_with_runtime", "result": result.update})
         
         # 构建返回结果
         result_dict = {

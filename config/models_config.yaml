@@ -1,6 +1,7 @@
 models:
+  # https://docs.bigmodel.cn/cn/guide/models/vlm/glm-4.6v
   glm_4_6v:
-    name: GLM-4.6V
+    name: glm-4.6v
     description: 旗舰版 - 最新一代多模态模型，性能最强
     context_length: 128000
     temperature: 0.1
@@ -9,7 +10,7 @@ models:
     thinking_supported: true
     thinking_enabled: false
   glm_4_6v_flashx:
-    name: GLM-4.6V-FlashX
+    name: glm-4.6v-flashx
     description: 轻量高速版 - 速度更快，适合快速响应场景
     context_length: 128000
     temperature: 0.1
@@ -17,15 +18,16 @@ models:
     thinking_supported: true
     thinking_enabled: false
   glm_4_6v_flash:
-    name: GLM-4.6V-Flash
+    name: glm-4.6v-flash
     description: 完全免费 - 基础性能，免费使用
     context_length: 128000
     temperature: 0.1
     max_tokens: 4096
     thinking_supported: false
     thinking_enabled: false
+  # https://docs.bigmodel.cn/cn/guide/models/vlm/glm-4.1v-thinking
   glm_4_1v_thinking:
-    name: GLM-4.1V-Thinking
+    name: glm-4.1v-thinking-flash
     description: 思维链增强版 - 支持复杂推理
     context_length: 128000
     temperature: 0.1
@@ -33,7 +35,7 @@ models:
     thinking_supported: true
     thinking_enabled: false
   glm_4_1v_thinking_flash:
-    name: GLM-4.1V-Thinking-Flash
+    name: glm-4.1v-thinking-flash
     description: 思维链轻量版 - 快速推理
     context_length: 128000
     temperature: 0.1
