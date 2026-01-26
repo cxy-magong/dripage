@@ -246,6 +246,7 @@ def browser_input(x: int, y: int, text: str, clear: bool = True) -> str:
     Returns:
         成功消息
     """
+    from DrissionPage.common import Keys
     import time
     config = get_config()
 
@@ -259,15 +260,12 @@ def browser_input(x: int, y: int, text: str, clear: bool = True) -> str:
         # 点击以聚焦输入框
         tab.actions.move_to((x, y))
         tab.actions.click()
-        time.sleep(0.5)
+        time.sleep(0.3)
 
         # 如果需要清除已有内容
         if clear:
             # Ctrl+A 全选，然后 Delete 删除
-            tab.actions.key_down('ctrl')
-            tab.actions.key_press('a')
-            time.sleep(0.2)
-            tab.actions.key_press('delete')
+            tab.actions.type(Keys.CTRL_A)
             time.sleep(0.2)
 
         # 输入文本
