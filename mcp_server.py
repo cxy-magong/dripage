@@ -20,7 +20,7 @@ if str(project_dir) not in sys.path:
     sys.path.insert(0, str(project_dir))
 
 from fastmcp import FastMCP
-from zhipuai import ZhipuAI
+from langgraph.types import Command
 from utils.drission_page import create_browser
 
 # Import new tools from tools directory
@@ -33,10 +33,10 @@ from tools import (
     browser_press_key,
     browser_scroll,
     vision_analyze,
+    locate_element,
     coordinate_convert_box,
     coordinate_parse_and_convert,
     coordinate_convert_from_image,
-    draw_bounding_boxes,
 )
 
 
@@ -73,6 +73,13 @@ def get_browser() -> object:
 def generate_timestamp() -> str:
     """Generate timestamp in format: YYYYMMDD_HHMMSS"""
     return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def serialize_result(result):
+    """Serialize result to JSON, handling Command objects."""
+    if isinstance(result, Command):
+        return result.update
+    return result
 
 
 # Create MCP server instance
@@ -141,70 +148,28 @@ async def save_mhtml_async(page, timestamp: str) -> str:
 
 
 @mcp.tool
-async def screenshot() -> str:
-    """Take a screenshot of current page.
-
-    Returns:
-        str: File path to saved screenshot
-    """
-    try:
-        page = get_browser()
-
-        # Screenshot full page
-        screenshot_data = page.get_screenshot(as_bytes=True)
-
-        # Generate filename with timestamp
-        timestamp = generate_timestamp()
-        filename = f"screenshot_{timestamp}.png"
-
-        # Save to output directory
-        filepath = OUTPUT_DIR / filename
-        with open(filepath, 'wb') as f:
-            f.write(screenshot_data)
-
-        return str(filepath)
-
-    except Exception as e:
-        raise RuntimeError(f"Screenshot failed: {e}")
-
-
-@mcp.tool
 async def get(
     url: Optional[str] = None,
-    formats: Optional[str | List[Literal["markdown", "html", "img", "mhtml"]]] = None
+    formats: List[Literal["markdown", "html", "img", "mhtml"]] = ["markdown"]
 ) -> str:
-    """Navigate to a URL or get current page info, save in specified format(s).
+    """Navigate to a URL or get current page, save in specified format(s).
 
     Args:
-        url: The webpage URL to navigate to. If not provided, returns current page info.
-        formats: Output format(s) - can be single format (string) or list of formats:
-                 "markdown", "html", "img", "mhtml"
-                 If not provided, defaults to ["markdown"]
+        url: The webpage URL to navigate to. If not provided, saves the current page.
+        formats: Output format(s) as list: ["markdown"], ["html"], ["img"], ["mhtml"],
+                 or multiple formats: ["markdown", "html", "img"]
+                 Defaults to ["markdown"]
 
     Returns:
-        str: File path(s) to saved content (JSON array if multiple formats),
-              or JSON with page title if url not provided
+        str: JSON with title, url, and file(s) - single "file" if one format,
+              or "files" array if multiple formats
     """
     try:
         page = get_browser()
 
-        # If no URL provided, return current page info
-        if url is None:
-            return json.dumps({
-                "title": page.title,
-                "url": page.url
-            }, ensure_ascii=False, indent=2)
-
-        # Navigate to URL
-        page.get(url)
-
-        # Set default format to markdown
-        if formats is None:
-            formats = ["markdown"]
-
-        # Ensure formats is a list
-        if isinstance(formats, str):
-            formats = [formats]
+        # Navigate to URL if provided, otherwise use current page
+        if url is not None:
+            page.get(url)
 
         # Generate timestamp
         timestamp = generate_timestamp()
@@ -233,12 +198,18 @@ async def get(
             if isinstance(result, Exception):
                 raise RuntimeError(f"Failed to save {formats[i]}: {result}")
 
-        # Return results
-        if len(results) ==1:
-            return results[0]
-        else:
-            # Return as JSON array for multiple formats
+        # Return JSON with title, url, and file(s)
+        if len(results) == 1:
             return json.dumps({
+                "title": page.title,
+                "url": page.url,
+                "file": results[0]
+            }, ensure_ascii=False, indent=2)
+        else:
+            # Return with files array for multiple formats
+            return json.dumps({
+                "title": page.title,
+                "url": page.url,
                 "files": results,
                 "count": len(results),
                 "formats": formats
@@ -246,88 +217,6 @@ async def get(
 
     except Exception as e:
         raise RuntimeError(f"Failed to get page: {e}")
-
-
-async def encode_image_async(image_path: Path) -> str:
-    """Async encode image to base64 using thread pool."""
-    def _encode():
-        with open(image_path, 'rb') as f:
-            return base64.b64encode(f.read()).decode('utf-8')
-
-    return await asyncio.to_thread(_encode)
-
-
-@mcp.tool
-async def vision(
-    query: str,
-    image_path: Optional[str] = None
-) -> str:
-    """Analyze images using GLM-4V vision model.
-
-    Args:
-        query: The query/question about the image
-        image_path: Path to image file (optional, uses current screenshot if not provided)
-
-    Returns:
-        str: Vision analysis result
-    """
-    try:
-        # Get API key
-        api_key = os.environ.get('ZAI_API_KEY')
-        if not api_key:
-            raise ValueError("ZAI_API_KEY not found in environment variables")
-
-        # Initialize client
-        client = ZhipuAI(api_key=api_key)
-
-        # Determine image source
-        if image_path:
-            # Use provided image file
-            img_path = Path(image_path)
-            if not img_path.exists():
-                raise ValueError(f"Image file not found: {image_path}")
-        else:
-            # Take current screenshot
-            page = get_browser()
-            screenshot_data = page.get_screenshot(as_bytes=True)
-
-            # Save to output directory
-            timestamp = generate_timestamp()
-            img_path = OUTPUT_DIR / f"vision_{timestamp}.png"
-            with open(img_path, 'wb') as f:
-                f.write(screenshot_data)
-
-        # Encode image to base64 asynchronously
-        image_base64 = await encode_image_async(img_path)
-
-        # Send to vision model
-        response = client.chat.completions.create(
-            model=DEFAULT_VISION_MODEL,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": image_base64
-                            }
-                        },
-                        {
-                            "type": "text",
-                            "text": query
-                        }
-                    ]
-                }
-            ],
-            temperature=VISION_TEMPERATURE,
-            max_tokens=VISION_MAX_TOKENS
-        )
-
-        return response.choices[0].message.content
-
-    except Exception as e:
-        raise RuntimeError(f"Vision analysis failed: {e}")
 
 
 # ==================== Browser Tools from tools/ directory ====================
@@ -357,17 +246,31 @@ def browser_get_current_page_tool() -> str:
 
 
 @mcp.tool
-def browser_screenshot_tool(full_page: bool = True, save: bool = True) -> str:
+def browser_screenshot_tool() -> str:
     """Take a screenshot of the current page.
 
-    Args:
-        full_page: Whether to capture the full page (default: True)
-        save: Whether to save the screenshot (default: True)
-
     Returns:
-        Path to the saved screenshot file
+        str: File path to saved screenshot
     """
-    return browser_screenshot.func(full_page=full_page, save=save)
+    try:
+        page = get_browser()
+
+        # Screenshot full page
+        screenshot_data = page.get_screenshot(as_bytes=True)
+
+        # Generate filename with timestamp
+        timestamp = generate_timestamp()
+        filename = f"screenshot_{timestamp}.png"
+
+        # Save to output directory
+        filepath = OUTPUT_DIR / filename
+        with open(filepath, 'wb') as f:
+            f.write(screenshot_data)
+
+        return str(filepath)
+
+    except Exception as e:
+        raise RuntimeError(f"Screenshot failed: {e}")
 
 
 @mcp.tool
@@ -448,6 +351,32 @@ def vision_analyze_tool(
 
 
 @mcp.tool
+def locate_element_tool(
+    query: str,
+    image_path: Optional[str] = None
+) -> str:
+    """Locate element using vision analysis and coordinate conversion.
+
+    This tool combines vision_analyze and coordinate conversion to find
+    elements on a page and return their coordinates in original image system.
+
+    Args:
+        query: Description of element to locate (e.g., "search input box", "submit button")
+        image_path: Path to image file (optional, uses current screenshot if not provided)
+
+    Returns:
+        JSON string with element location, converted coordinates, and analysis details
+
+    Example:
+        locate_element_tool("search input box") -> returns coordinates of search box
+    """
+    result = locate_element.invoke({"query": query, "image_path": image_path})
+    # Handle Command object - extract update dict for serialization
+    serializable_result = serialize_result(result)
+    return json.dumps(serializable_result, ensure_ascii=False, indent=2)
+
+
+@mcp.tool
 def coordinate_convert_box_tool(
     box: List[int],
     original_width: int,
@@ -500,65 +429,6 @@ def coordinate_convert_from_image_tool(
         JSON string with converted coordinates
     """
     return coordinate_convert_from_image.func(text, image_path)
-
-
-@mcp.tool
-def agent_find_elements_tool(
-    query: str,
-    image_path: Optional[str] = None
-) -> str:
-    """Use intelligent agent to find elements in image.
-
-    This tool automatically:
-    1. Calls vision analysis to analyze the image
-    2. Parses coordinates from analysis results
-    3. Automatically converts coordinates to original image coordinate system
-    4. Returns final element position information
-
-    Args:
-        query: Description of elements to find (e.g., "search box", "search button")
-        image_path: Path to image file (optional, takes current screenshot if not provided)
-
-    Returns:
-        JSON format element position information
-    """
-    return agent_find_elements.func(query, image_path=image_path)
-
-
-@mcp.tool
-def draw_bounding_boxes_tool(
-    image_path: str,
-    boxes: List[List[int]],
-    labels: Optional[List[str]] = None,
-    output_path: Optional[str] = None,
-    line_width: int = 3,
-    line_color: str = "#FF0000",
-    font_size: int = 16,
-) -> str:
-    """Draw bounding boxes on image for visualizing detection results.
-
-    Args:
-        image_path: Input image path
-        boxes: List of bounding boxes, each in format [xmin, ymin, xmax, ymax]
-        labels: Optional, list of labels for each box (same length as boxes)
-        output_path: Output image path (optional, defaults to _annotated suffix)
-        line_width: Line width (default 3)
-        line_color: Line color in hex format (default "#FF0000" red)
-        font_size: Label font size (default 16)
-
-    Returns:
-        JSON format with output path and drawing info
-    """
-    return draw_bounding_boxes.func(
-        image_path=image_path,
-        boxes=boxes,
-        labels=labels,
-        output_path=output_path,
-        line_width=line_width,
-        line_color=line_color,
-        font_size=font_size
-    )
-
 
 if __name__ == "__main__":
     # Run MCP server with HTTP or STDIO transport
