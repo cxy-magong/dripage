@@ -26,6 +26,7 @@ PYTHONPATH="G:\code\agent-use\dripage" uv run mcp_server.py
 ### 2. Use with mcporter CLI
 
 ```bash
+mcporter --config config/mcporter-http.json dripage --schema
 # Save current page as markdown
 mcporter call --config config/mcporter-http.json dripage.get
 
@@ -39,6 +40,51 @@ mcporter call --config config/mcporter-http.json dripage.get url:'https://exampl
 ### 3. Use with MCP Clients (Claude Desktop, Cursor, etc.)
 
 Configure in your MCP client settings using `config/mcporter.json` or `config/mcporter-http.json`.
+
+### 4. MCP Server Management
+
+Use's MCP manager to control's server lifecycle:
+
+```bash
+# Start server (HTTP mode, port 8000)
+uv run mcp_manager.py start
+
+# Check server status
+uv run mcp_manager.py status
+
+# View recent logs
+uv run mcp_manager.py logs --lines 50
+
+# Restart server
+uv run mcp_manager.py restart
+
+# Stop server
+uv run mcp_manager.py stop
+```
+
+**Custom startup:**
+```bash
+# Start on custom port
+uv run mcp_manager.py start --port 8080
+
+# Start STDIO mode
+uv run mcp_manager.py start --transport stdio
+```
+
+**Custom startup:**
+```bash
+# Start on custom port
+uv run mcp_manager.py start --port 8080
+
+# Start STDIO mode
+uv run mcp_manager.py start --transport stdio
+```
+
+The manager automatically handles:
+- Process lifecycle (start/stop/restart)
+- PID tracking and state persistence
+- Log file management
+- Health checks
 
 ## Configuration
 

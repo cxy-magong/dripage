@@ -37,6 +37,11 @@ from tools import (
     coordinate_convert_box,
     coordinate_parse_and_convert,
     coordinate_convert_from_image,
+    list_tabs,
+    switch_tab,
+    new_tab,
+    close_tab,
+    get_current_tab_info,
 )
 
 
@@ -429,6 +434,69 @@ def coordinate_convert_from_image_tool(
         JSON string with converted coordinates
     """
     return coordinate_convert_from_image.func(text, image_path)
+
+
+# ==================== Tab Management Tools ====================
+
+@mcp.tool
+def browser_list_tabs_tool() -> str:
+    """List all browser tabs.
+
+    Returns:
+        JSON string with list of tabs including their titles and URLs
+    """
+    return list_tabs()
+
+
+@mcp.tool
+def browser_switch_tab_tool(tab_index: int) -> str:
+    """Switch to a specific tab by index.
+
+    Args:
+        tab_index: The index of tab to switch to (0-based)
+
+    Returns:
+        Success message with new tab title and URL
+    """
+    return switch_tab(tab_index)
+
+
+@mcp.tool
+def browser_new_tab_tool(url: Optional[str] = None) -> str:
+    """Open a new tab.
+
+    Args:
+        url: Optional URL to navigate to in the new tab
+
+    Returns:
+        Success message with new tab title and URL
+    """
+    return new_tab(url)
+
+
+@mcp.tool
+def browser_close_tab_tool(tab_index: Optional[int] = None) -> str:
+    """Close a tab.
+
+    Args:
+        tab_index: Optional index of tab to close (0-based).
+                   If not provided, closes the current tab.
+
+    Returns:
+        Success message
+    """
+    return close_tab(tab_index)
+
+
+@mcp.tool
+def browser_get_current_tab_info_tool() -> str:
+    """Get information about the current tab.
+
+    Returns:
+        JSON string with current tab title and URL
+    """
+    return get_current_tab_info()
+
 
 if __name__ == "__main__":
     # Run MCP server with HTTP or STDIO transport

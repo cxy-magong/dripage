@@ -18,6 +18,15 @@ from tools.browser_tools import (
     get_browser,
 )
 
+# 标签页管理工具
+from tools.browser_tabs import (
+    list_tabs,
+    switch_tab,
+    new_tab,
+    close_tab,
+    get_current_tab_info,
+)
+
 # Agent 工具
 from tools.agent_tools import (
     vision_analyze,
@@ -48,6 +57,12 @@ __all__ = [
     'browser_scroll',
     'get_browser_config',
     'get_browser',
+    # 标签页管理工具
+    'list_tabs',
+    'switch_tab',
+    'new_tab',
+    'close_tab',
+    'get_current_tab_info',
     # Agent 工具
     'vision_analyze',
     'coordinate_convert_box',

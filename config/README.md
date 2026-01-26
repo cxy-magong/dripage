@@ -32,6 +32,25 @@ Configuration for mcporter using HTTP transport (for testing).
 ### `models_config.yaml`
 Model configuration for vision and AI tools.
 
+### `paths.py`
+Centralized path management for the entire project. All directory and file paths are defined here.
+
+**Usage:**
+```python
+from config.paths import PROJECT_ROOT, OUTPUT_DIR, MCP_CONFIG_FILE
+
+# Use paths in your code
+config_file = MCP_CONFIG_FILE
+output_dir = OUTPUT_DIR
+```
+
+**View all paths:**
+```bash
+uv run python config/paths.py
+```
+
+For detailed documentation, see [PATHS_README.md](./PATHS_README.md).
+
 ---
 
 ## MCP Tools
