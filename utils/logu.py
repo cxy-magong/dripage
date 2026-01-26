@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 LOG_LEVEL='info'
-LOG_DIR=Path(r'.').absolute().parent/'output'/'log'
+LOG_DIR=Path(__file__).absolute().parent.parent/'output'/'log'
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 # python_xx/site-packages/loguru/_handler.py  _serialize_record
 FORMAT = '<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{file}:{line}</cyan> :<cyan>{function}</cyan> - {message}'
@@ -41,6 +41,7 @@ def get_logger(name, console=True, console_level="INFO", file=True, file_level="
     if console:
         loguru.logger.add(sys.stderr, format=FORMAT,level=console_level, filter=lambda record: record["extra"].get("name") == name)
     user_logger = loguru.logger.bind(name=name)  
+    user_logger.info(f"日志文件路径：{LOG_DIR/log_file}")
     loggers[name] = user_logger  
     return user_logger  
 
