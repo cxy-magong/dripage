@@ -5,13 +5,15 @@ GLM-4.1V-Thinking-Flash 完整演示
 """
 
 import os
+from dotenv import load_dotenv
+load_dotenv()
 from zai import ZhipuAiClient
 from utils.logu import get_logger
 from utils.glm_coordinate_converter import GLMCoordinateConverter
 from utils.image_bbox_drawer import draw_bbox_on_image
 
 # 创建 logger
-logger = get_logger('glm_4_1v_with_bbox_demo')
+logger = get_logger()
 
 # 使用官方示例代码
 client = ZhipuAiClient(api_key=os.environ.get('ZAI_API_KEY'))

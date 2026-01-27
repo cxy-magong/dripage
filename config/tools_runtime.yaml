@@ -1,0 +1,47 @@
+# Tools Runtime Configuration
+# 用于 tools 目录中工具的 Runtime 配置
+
+# 浏览器配置
+browser:
+  # 浏览器连接地址
+  address: "127.0.0.1:19222"
+  # 是否使用无头模式
+  headless: false
+  # 操作超时时间（毫秒）
+  timeout: 30000
+
+# 输出配置
+output:
+  # 输出目录（相对于项目根目录）
+  directory: "output/data"
+  # 截图子目录
+  images_subdir: "images"
+  # 文件命名格式：{type}_{timestamp}.{ext}
+  timestamp_format: "%Y-%m-%d_%H-%M-%S"
+
+# Vision/模型配置
+vision:
+  # 默认视觉模型
+  model: "glm-4v-flash"
+  # 温度参数
+  temperature: 0.7
+  # 最大 token 数
+  max_tokens: 1024
+  # GLM-4V 内部使用的固定缩放尺寸
+  glm_scaled_size: 999
+
+# 坐标转换配置
+coordinate:
+  # GLM-4V 内部缩放尺寸
+  glm_scaled_size: 999
+
+# 工具行为配置
+tools:
+  # 是否在工具调用时记录日志
+  logging: true
+  # 截图是否自动保存
+  auto_save_screenshots: true
+  # 是否在截图上绘制 bounding box
+  draw_bbox: false
+  # bbox 线条宽度
+  bbox_line_width: 3
