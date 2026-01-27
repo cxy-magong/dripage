@@ -21,10 +21,18 @@ from tools.browser_tools import (
 # 标签页管理工具
 from tools.browser_tabs import (
     list_tabs,
-    switch_tab,
     new_tab,
     close_tab,
-    get_current_tab_info,
+)
+
+# 标签页管理通用模块
+from tools.tab_manager import (
+    get_tab_object,
+    get_tab_metadata,
+    get_tab_index,
+    list_all_tabs,
+    new_tab_object,
+    close_tab_object,
 )
 
 # Agent 工具
@@ -59,10 +67,15 @@ __all__ = [
     'get_browser',
     # 标签页管理工具
     'list_tabs',
-    'switch_tab',
     'new_tab',
     'close_tab',
-    'get_current_tab_info',
+    # 标签页管理通用模块
+    'get_tab_object',
+    'get_tab_metadata',
+    'get_tab_index',
+    'list_all_tabs',
+    'new_tab_object',
+    'close_tab_object',
     # Agent 工具
     'vision_analyze',
     'coordinate_convert_box',

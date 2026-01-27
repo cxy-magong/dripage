@@ -14,49 +14,17 @@ def get_browser():
 
 
 def list_tabs() -> str:
-    """List all browser tabs.
+    """List all browser tabs using tab_manager.
 
     Returns:
-        JSON string with list of tabs including their titles and URLs
+        JSON string with list of tabs including tab_id, title, url, index, is_current
     """
+    from tools.tab_manager import list_all_tabs
     import json
+
     try:
-        logger.info("Listing all browser tabs")
-        browser = get_browser()
-        tabs = browser.get_tabs()
-
-        logger.debug(f"Found {len(tabs)} tabs")
-
-        tab_info = []
-        current_tab = browser.get_tab()
-
-        for i, tab in enumerate(tabs):
-            try:
-                tab_data = {
-                    "index": i,
-                    "title": tab.title,
-                    "url": tab.url,
-                    "is_current": tab == current_tab
-                }
-                tab_info.append(tab_data)
-                logger.debug(f"Tab {i}: {tab.title} - {tab.url}")
-            except Exception as e:
-                logger.warning(f"Failed to get info for tab {i}: {e}")
-                tab_info.append({
-                    "index": i,
-                    "title": "N/A",
-                    "url": "N/A",
-                    "is_current": tab == current_tab
-                })
-
-        result = json.dumps({
-            "status": "success",
-            "tabs": tab_info,
-            "count": len(tab_info)
-        }, ensure_ascii=False, indent=2)
-
-        logger.info(f"Successfully listed {len(tab_info)} tabs")
-        return result
+        result = list_all_tabs()
+        return json.dumps(result, ensure_ascii=False, indent=2)
 
     except Exception as e:
         logger.error(f"Failed to list tabs: {e}")
