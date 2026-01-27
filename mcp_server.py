@@ -10,7 +10,7 @@ import yaml
 import json
 import asyncio
 from pathlib import Path
-from typing import Optional, Literal, List
+from typing import Optional, Literal, List, Union
 from datetime import datetime
 from markitdown import MarkItDown
 
@@ -38,10 +38,8 @@ from tools import (
     coordinate_parse_and_convert,
     coordinate_convert_from_image,
     list_tabs,
-    switch_tab,
     new_tab,
     close_tab,
-    get_current_tab_info,
 )
 
 
@@ -155,12 +153,14 @@ async def save_mhtml_async(page, timestamp: str) -> str:
 @mcp.tool
 async def get(
     url: Optional[str] = None,
+    tab_id: Optional[Union[int, str]] = None,
     formats: List[Literal["markdown", "html", "img", "mhtml"]] = ["markdown"]
 ) -> str:
     """Navigate to a URL or get current page, save in specified format(s).
 
     Args:
         url: The webpage URL to navigate to. If not provided, saves the current page.
+        tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
         formats: Output format(s) as list: ["markdown"], ["html"], ["img"], ["mhtml"],
                  or multiple formats: ["markdown", "html", "img"]
                  Defaults to ["markdown"]
@@ -170,7 +170,10 @@ async def get(
               or "files" array if multiple formats
     """
     try:
-        page = get_browser()
+        from tools.tab_manager import get_tab_object
+
+        # Get specified tab object
+        page, metadata = get_tab_object(tab_id)
 
         # Navigate to URL if provided, otherwise use current page
         if url is not None:
@@ -203,12 +206,13 @@ async def get(
             if isinstance(result, Exception):
                 raise RuntimeError(f"Failed to save {formats[i]}: {result}")
 
-        # Return JSON with title, url, and file(s)
+        # Return JSON with title, url, file(s), and tab info
         if len(results) == 1:
             return json.dumps({
                 "title": page.title,
                 "url": page.url,
-                "file": results[0]
+                "file": results[0],
+                "tab": metadata
             }, ensure_ascii=False, indent=2)
         else:
             # Return with files array for multiple formats
@@ -217,7 +221,8 @@ async def get(
                 "url": page.url,
                 "files": results,
                 "count": len(results),
-                "formats": formats
+                "formats": formats,
+                "tab": metadata
             }, ensure_ascii=False, indent=2)
 
     except Exception as e:
@@ -227,41 +232,51 @@ async def get(
 # ==================== Browser Tools from tools/ directory ====================
 
 @mcp.tool
-def browser_navigate_tool(url: str) -> str:
+def browser_navigate_tool(url: str, tab_id: Optional[Union[int, str]] = None) -> str:
     """Navigate browser to specified URL.
 
     Args:
         url: The URL to navigate to
+        tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
 
     Returns:
-        Success message with page title
+        Success message with page title and tab info
     """
     # Call the tool function directly
-    return browser_navigate.func(url)
+    return browser_navigate.func(url, tab_id=tab_id)
 
 
 @mcp.tool
-def browser_get_current_page_tool() -> str:
+def browser_get_current_page_tool(tab_id: Optional[Union[int, str]] = None) -> str:
     """Get current page information.
+
+    Args:
+        tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
 
     Returns:
         JSON string with page title and URL
     """
-    return browser_get_current_page.func()
+    return browser_get_current_page.func(tab_id=tab_id)
 
 
 @mcp.tool
-def browser_screenshot_tool() -> str:
-    """Take a screenshot of the current page.
+def browser_screenshot_tool(tab_id: Optional[Union[int, str]] = None) -> str:
+    """Take a screenshot of the specified tab.
+
+    Args:
+        tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
 
     Returns:
         str: File path to saved screenshot
     """
     try:
-        page = get_browser()
+        from tools.tab_manager import get_tab_object
+
+        # Get specified tab object
+        tab, metadata = get_tab_object(tab_id)
 
         # Screenshot full page
-        screenshot_data = page.get_screenshot(as_bytes=True)
+        screenshot_data = tab.get_screenshot(as_bytes=True)
 
         # Generate filename with timestamp
         timestamp = generate_timestamp()
@@ -272,28 +287,37 @@ def browser_screenshot_tool() -> str:
         with open(filepath, 'wb') as f:
             f.write(screenshot_data)
 
-        return str(filepath)
+        result = {
+            "file": str(filepath),
+            "tab": metadata
+        }
+
+        return json.dumps(result, ensure_ascii=False, indent=2)
 
     except Exception as e:
         raise RuntimeError(f"Screenshot failed: {e}")
 
 
 @mcp.tool
-def browser_click_tool(x: int, y: int) -> str:
+def browser_click_tool(x: int, y: int, tab_id: Optional[Union[int, str]] = None) -> str:
     """Click at specified coordinates on the page.
 
     Args:
         x: X coordinate
         y: Y coordinate
+        tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
 
     Returns:
-        Success message
+        Success message with tab info
     """
-    return browser_click.func(x, y)
+    return browser_click.func(x, y, tab_id=tab_id)
 
 
 @mcp.tool
-def browser_input_tool(x: int, y: int, text: str, clear: bool = True) -> str:
+def browser_input_tool(
+    x: int, y: int, text: str, clear: bool = True,
+    tab_id: Optional[Union[int, str]] = None
+) -> str:
     """Click input box at coordinates and input text.
 
     Args:
@@ -301,39 +325,48 @@ def browser_input_tool(x: int, y: int, text: str, clear: bool = True) -> str:
         y: Y coordinate of input box
         text: Text to input
         clear: Whether to clear existing text first (default: True)
+        tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
 
     Returns:
-        Success message
+        Success message with tab info
     """
-    return browser_input.func(x, y, text, clear=clear)
+    return browser_input.func(x, y, text, clear=clear, tab_id=tab_id)
 
 
 @mcp.tool
-def browser_press_key_tool(key: str, times: int = 1) -> str:
+def browser_press_key_tool(
+    key: str, times: int = 1,
+    tab_id: Optional[Union[int, str]] = None
+) -> str:
     """Press keyboard keys.
 
     Args:
         key: Key name (e.g., 'enter', 'escape', 'space', 'tab')
         times: Number of times to press (default: 1)
+        tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
 
     Returns:
-        Success message
+        Success message with tab info
     """
-    return browser_press_key.func(key, times=times)
+    return browser_press_key.func(key, times=times, tab_id=tab_id)
 
 
 @mcp.tool
-def browser_scroll_tool(direction: str = "down", amount: int = 500) -> str:
+def browser_scroll_tool(
+    direction: str = "down", amount: int = 500,
+    tab_id: Optional[Union[int, str]] = None
+) -> str:
     """Scroll the page.
 
     Args:
         direction: Scroll direction, 'up' or 'down' (default: 'down')
         amount: Scroll amount in pixels (default: 500)
+        tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
 
     Returns:
-        Success message
+        Success message with tab info
     """
-    return browser_scroll.func(direction=direction, amount=amount)
+    return browser_scroll.func(direction=direction, amount=amount, tab_id=tab_id)
 
 
 # ==================== Agent Tools from tools/ directory ====================
@@ -341,24 +374,27 @@ def browser_scroll_tool(direction: str = "down", amount: int = 500) -> str:
 @mcp.tool
 def vision_analyze_tool(
     query: str,
-    image_path: Optional[str] = None
+    image_path: Optional[str] = None,
+    tab_id: Optional[Union[int, str]] = None
 ) -> str:
     """Analyze images using GLM-4V vision model.
 
     Args:
         query: The query/question about the image
         image_path: Path to image file (optional, uses current screenshot if not provided)
+        tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
 
     Returns:
-        Vision analysis result
+        Vision analysis result with tab info
     """
-    return vision_analyze.func(query, image_path=image_path)
+    return vision_analyze.func(query, image_path=image_path, tab_id=tab_id)
 
 
 @mcp.tool
 def locate_element_tool(
     query: str,
-    image_path: Optional[str] = None
+    image_path: Optional[str] = None,
+    tab_id: Optional[Union[int, str]] = None
 ) -> str:
     """Locate element using vision analysis and coordinate conversion.
 
@@ -368,6 +404,7 @@ def locate_element_tool(
     Args:
         query: Description of element to locate (e.g., "search input box", "submit button")
         image_path: Path to image file (optional, uses current screenshot if not provided)
+        tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
 
     Returns:
         JSON string with element location, converted coordinates, and analysis details
@@ -375,7 +412,7 @@ def locate_element_tool(
     Example:
         locate_element_tool("search input box") -> returns coordinates of search box
     """
-    result = locate_element.invoke({"query": query, "image_path": image_path})
+    result = locate_element.invoke({"query": query, "image_path": image_path, "tab_id": tab_id})
     # Handle Command object - extract update dict for serialization
     serializable_result = serialize_result(result)
     return json.dumps(serializable_result, ensure_ascii=False, indent=2)
@@ -440,12 +477,14 @@ def coordinate_convert_from_image_tool(
 
 @mcp.tool
 def browser_list_tabs_tool() -> str:
-    """List all browser tabs.
+    """List all browser tabs with full information.
 
     Returns:
-        JSON string with list of tabs including their titles and URLs
+        JSON string with list of tabs including tab_id, title, url, index, is_current
     """
-    return list_tabs()
+    from tools.tab_manager import list_all_tabs
+    result = list_all_tabs()
+    return json.dumps(result, ensure_ascii=False, indent=2)
 
 
 @mcp.tool
@@ -469,33 +508,74 @@ def browser_new_tab_tool(url: Optional[str] = None) -> str:
         url: Optional URL to navigate to in the new tab
 
     Returns:
-        Success message with new tab title and URL
+        Success message with new tab title and URL and tab info
     """
-    return new_tab(url)
+    result = new_tab(url)
+    # Parse the JSON result and ensure it's properly formatted
+    return result
 
 
 @mcp.tool
-def browser_close_tab_tool(tab_index: Optional[int] = None) -> str:
+def browser_close_tab_tool(tab_id: Union[int, str] = None) -> str:
     """Close a tab.
 
     Args:
-        tab_index: Optional index of tab to close (0-based).
-                   If not provided, closes the current tab.
+        tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
 
     Returns:
         Success message
     """
-    return close_tab(tab_index)
+    from tools.tab_manager import close_tab_object
+    result = close_tab_object(tab_id)
+    return json.dumps(result, ensure_ascii=False, indent=2)
 
 
 @mcp.tool
-def browser_get_current_tab_info_tool() -> str:
-    """Get information about the current tab.
+def browser_list_tabs_tool() -> str:
+    """List all browser tabs with full information.
 
     Returns:
-        JSON string with current tab title and URL
+        JSON string with list of tabs including tab_id, title, url, index, is_current
     """
-    return get_current_tab_info()
+    from tools.tab_manager import list_all_tabs
+    result = list_all_tabs()
+    return json.dumps(result, ensure_ascii=False, indent=2)
+
+@mcp.tool
+def browser_new_tab_tool(url: Optional[str] = None) -> str:
+    """Open a new tab.
+
+    Args:
+        url: Optional URL to navigate to in the new tab
+
+    Returns:
+        Success message with new tab title and URL and tab info
+    """
+    from tools.tab_manager import new_tab_object
+
+    tab, metadata = new_tab_object(url)
+
+    result = {
+        "status": "success",
+        "message": "New tab opened",
+        "tab": metadata
+    }
+
+    return json.dumps(result, ensure_ascii=False, indent=2)
+
+@mcp.tool
+def browser_close_tab_tool(tab_id: Union[int, str] = None) -> str:
+    """Close a tab.
+
+    Args:
+        tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
+
+    Returns:
+        Success message
+    """
+    from tools.tab_manager import close_tab_object
+    result = close_tab_object(tab_id)
+    return json.dumps(result, ensure_ascii=False, indent=2)
 
 
 if __name__ == "__main__":

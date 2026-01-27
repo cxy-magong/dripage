@@ -52,24 +52,32 @@ class AgentState(TypedDict):
 
 # ==================== 通用浏览器截图函数 ====================
 
-def save_browser_screenshot(prefix: str = "screenshot", save: bool = True) -> Optional[str]:
+def save_browser_screenshot(
+    tab_id: Optional[Union[int, str]] = None,
+    prefix: str = "screenshot",
+    save: bool = True
+) -> Optional[str]:
     """
-    通用浏览器截图函数 - 可复用的截图逻辑
+    通用浏览器截图函数 - 支持指定标签
 
     Args:
+        tab_id: 标签标识符（None=当前标签，int=索引，str=tab_id）
         prefix: 文件名前缀（默认 'screenshot'）
         save: 是否保存到文件（默认 True）
 
     Returns:
         保存的文件路径（如果 save=True），否则返回 None
     """
+    from tools.tab_manager import get_tab_object
+
     config = get_config()
 
     if config.logging:
-        logger.info(f"截取浏览器截图 (prefix={prefix}, save={save})")
+        logger.info(f"截取浏览器截图 (tab_id={tab_id}, prefix={prefix}, save={save})")
 
     try:
-        page = create_browser()
+        # 获取指定标签对象
+        tab, metadata = get_tab_object(tab_id)
 
         # 生成文件名
         timestamp = generate_timestamp()
@@ -77,7 +85,7 @@ def save_browser_screenshot(prefix: str = "screenshot", save: bool = True) -> Op
         filepath = config.output_dir / filename
 
         # 截取截图
-        screenshot_data = page.get_screenshot(as_bytes=True)
+        screenshot_data = tab.get_screenshot(as_bytes=True)
 
         # 保存截图
         if save:
@@ -85,7 +93,7 @@ def save_browser_screenshot(prefix: str = "screenshot", save: bool = True) -> Op
                 f.write(screenshot_data)
 
             if config.logging:
-                logger.info(f"截图已保存到: {filepath}")
+                logger.info(f"截图已保存到: {filepath} (标签: {metadata['title']})")
 
             return str(filepath)
         else:
@@ -300,23 +308,27 @@ class CoordinateConverter:
 def vision_analyze(
     query: str,
     image_path: Optional[str] = None,
+    tab_id: Optional[Union[int, str]] = None,
     runtime: ToolRuntime = None,
 ) -> str:
     """
-    使用 GLM-4.1V 视觉模型分析图像（使用 ChatOpenAI OpenAI 兼容接口）
+    使用 GLM-4.1V 视觉模型分析图像（支持指定标签）
 
     Args:
         query: 关于图像的问题或查询
-        image_path: 图像文件路径（可选，如果不提供则截取当前页面截图）
+        image_path: 图像文件路径（可选，如果不提供则截取指定标签的页面）
+        tab_id: 标签标识符（None=当前标签，int=索引，str=tab_id）
         runtime: ToolRuntime 参数（自动注入，用于共享状态）
 
     Returns:
-        视觉分析结果（JSON 字符串格式，包含分析结果、图片尺寸、文件路径）
+        视觉分析结果（JSON 字符串格式，包含分析结果、图片尺寸、文件路径、标签信息）
     """
+    from tools.tab_manager import get_tab_object
+
     config = get_config()
 
     if config.logging:
-        logger.info(f"视觉分析: query='{query}', image_path={image_path}")
+        logger.info(f"视觉分析: query='{query}', image_path={image_path}, tab_id={tab_id}")
 
     try:
         # 获取 API key
@@ -326,16 +338,22 @@ def vision_analyze(
 
         # 确定图像来源和文件路径
         saved_file_path = None
+        tab_metadata = {}
+
         if image_path:
             # 使用提供的图像文件
             img_path = Path(image_path)
             if not img_path.exists():
                 raise ValueError(f"图像文件不存在: {image_path}")
         else:
-            # 截取当前页面截图
-            saved_file_path = save_browser_screenshot(prefix="vision", save=True)
+            # 截取指定标签的页面
+            saved_file_path = save_browser_screenshot.func(tab_id=tab_id, prefix="vision", save=True)
+
             if saved_file_path is None:
                 raise RuntimeError("截图失败")
+
+            # 获取标签元数据
+            _, tab_metadata = get_tab_object(tab_id)
             img_path = Path(saved_file_path)
 
         # 获取图片尺寸
@@ -376,8 +394,15 @@ def vision_analyze(
             if config.logging:
                 logger.info(f"已更新 runtime.state: image_path={img_path}, size={image_width}x{image_height}")
 
-        # 返回分析结果（包含图像尺寸）
-        return result
+        # 返回分析结果（包含标签信息）
+        result_dict = {
+            "analysis": result,
+            "image_size": {"width": image_width, "height": image_height},
+            "image_path": str(img_path),
+            "tab": tab_metadata
+        }
+
+        return json.dumps(result_dict, ensure_ascii=False, indent=2)
 
     except Exception as e:
         error_msg = f"视觉分析失败: {str(e)}"
@@ -660,14 +685,16 @@ def coordinate_convert_from_image(
 def locate_element(
     query: str,
     image_path: Optional[str] = None,
+    tab_id: Optional[Union[int, str]] = None,
     runtime: ToolRuntime = None,
 ) -> Command:
     """
-    定位元素位置信息 - 使用视觉分析 + 坐标转换
+    定位元素位置信息 - 支持指定标签（使用视觉分析 + 坐标转换）
 
     Args:
         query: 描述要查找的元素，如"搜索输入框"、"提交按钮"等
-        image_path: 图像文件路径（可选，如果不提供则截取当前页面截图）
+        image_path: 图像文件路径（可选，如果不提供则截取指定标签的页面）
+        tab_id: 标签标识符（None=当前标签，int=索引，str=tab_id）
         runtime: ToolRuntime 参数（自动注入，用于共享状态）
 
     Returns:
@@ -678,7 +705,7 @@ def locate_element(
     config = get_config()
     query = query+"返回格式： box坐标列表，每个box坐标为[x1,y1,x2,y2]，x1,y1为左上角坐标，x2,y2为右下角坐标。"
     if config.logging:
-        logger.info(f"定位元素: query='{query}', image_path={image_path}")
+        logger.info(f"定位元素: query='{query}', image_path={image_path}, tab_id={tab_id}")
 
     # 如果 runtime 为 None，创建临时的 ToolRuntime
     if runtime is None:
@@ -701,11 +728,11 @@ def locate_element(
         )
 
     try:
-        # 步骤 1: 调用 vision_analyze 获取视觉结果
+        # 步骤 1: 调用 vision_analyze 获取视觉结果（传递 tab_id）
         if image_path:
-            vision_result = vision_analyze.func(query, image_path=image_path, runtime=runtime)
+            vision_result = vision_analyze.func(query, image_path=image_path, tab_id=tab_id, runtime=runtime)
         else:
-            vision_result = vision_analyze.func(query, image_path=None, runtime=runtime)
+            vision_result = vision_analyze.func(query, image_path=None, tab_id=tab_id, runtime=runtime)
 
         # 获取 API key
         api_key = os.environ.get('ZAI_API_KEY')
@@ -763,18 +790,22 @@ def locate_element(
                     # 提取 Command 对象中的 update 属性
                     tool_results.append({"tool": "coordinate_convert_point_with_runtime", "result": result.update})
         
+        # 获取标签元数据
+        _, tab_metadata = get_tab_object(tab_id)
+
         # 构建返回结果
         result_dict = {
             "query": query,
             "vision_result": vision_result,
             "coordinate_conversion": converted_result,
             "tool_calls": tool_results,
+            "tab": tab_metadata,
             "status": "success"
         }
-        
+
         if config.logging:
             logger.info(f"元素定位完成，工具调用数量: {len(tool_results)}")
-        
+
         # 使用 Command 更新 runtime.state
         return Command(
             update={
