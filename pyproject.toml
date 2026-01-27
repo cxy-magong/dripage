@@ -33,3 +33,5 @@ dependencies = [
 dripage-mcp = "mcp_server:main"
 cdp-proxy = "cdp_proxy.start_proxy:main"
 test-cdp-proxy = "cdp_proxy.test_proxy:main"
+chrome-rpc-server = "services.chrome_rpc.start_server:main"
+chrome-rpc-client = "services.chrome_rpc.test_remote_client:main"
