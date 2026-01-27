@@ -1,0 +1,40 @@
+# LangChain Runtime Configuration
+
+Browser runtime configuration for LangChain
+browser:
+  # Browser connection settings
+  address: "127.0.0.1:19222"  # Browser to connect to
+  headless: false  # Run browser in headless mode
+  timeout: 30000  # Browser operation timeout (ms)
+
+# MCP Tools configuration
+mcp_tools:
+  enabled: true  # Enable MCP tools integration
+  tools:
+    - name: "browser_navigate"
+      description: "Navigate browser to URL"
+    - name: "browser_screenshot"
+      description: "Take screenshot of current page"
+    - name: "browser_click"
+      description: "Click at coordinates"
+    - name: "browser_input"
+      description: "Input text at coordinates"
+
+# Model configuration
+models:
+  # Main controller agent
+  glm_4_7:
+    name: "GLM-4.7"
+    temperature: 0.0  # Deterministic agent behavior
+    max_tokens: 4096
+    reflection:
+      enabled: true  # Enable reflection for better decision-making
+      max_reflections: 3  # Maximum number of reflection steps
+
+  # Vision specialist agent
+  glm_4_1v:
+    name: "GLM-4.1V-Thinking-Flash"
+    temperature: 0.1
+    max_tokens: 1024
+    thinking:
+      enabled: true  # Enable thinking chain

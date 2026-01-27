@@ -1,0 +1,30 @@
+# Multi-Browser Configuration
+# This file defines multiple browser instances with their configurations.
+#
+# Each browser is identified by a unique 'name' and references an INI file
+# located in config/browser/ directory.
+#
+# Browser INI files contain detailed browser configuration including:
+# - CDP address (port)
+# - Chrome browser path
+# - User data directory
+# - Browser arguments, preferences, flags, etc.
+#
+# Usage:
+#   python -m utils.chrome_manager start --name browser1
+#   python -m utils.chrome_manager status --name browser1
+#   python -m utils.chrome_manager close --name browser1
+
+browsers:
+  - name: browser1
+    ini_file: config/browser/browser1.ini
+    description: "Default browser on port 19222"
+
+  - name: browser2
+    ini_file: config/browser/browser2.ini
+    description: "Second browser on port 19223"
+
+  # Add more browsers as needed:
+  # - name: browser3
+  #   ini_file: config/browser/browser3.ini
+  #   description: "Custom browser configuration"
