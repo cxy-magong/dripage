@@ -30,8 +30,12 @@ OUTPUT_LOG_DIR.mkdir(parents=True, exist_ok=True)
 # Main config directory
 CONFIG_DIR: Final[Path] = PROJECT_ROOT / "config"
 
+# Browser config directory
+BROWSER_CONFIG_DIR: Final[Path] = CONFIG_DIR / "browser"
+
 # Individual config files
 MCP_CONFIG_FILE: Final[Path] = CONFIG_DIR / "mcp_config.yaml"
+BROWSERS_CONFIG_FILE: Final[Path] = CONFIG_DIR / "browsers.yaml"
 MCPORTER_STDIO_FILE: Final[Path] = CONFIG_DIR / "mcporter.json"
 MCPORTER_HTTP_FILE: Final[Path] = CONFIG_DIR / "mcporter-http.json"
 MODELS_CONFIG_FILE: Final[Path] = CONFIG_DIR / "models_config.yaml"
@@ -104,7 +108,9 @@ def validate_paths() -> dict[str, bool]:
         "output_data_dir": OUTPUT_DATA_DIR.exists(),
         "output_log_dir": OUTPUT_LOG_DIR.exists(),
         "config_dir": CONFIG_DIR.exists(),
+        "browser_config_dir": BROWSER_CONFIG_DIR.exists(),
         "mcp_config": MCP_CONFIG_FILE.exists(),
+        "browsers_config": BROWSERS_CONFIG_FILE.exists(),
         "mcporter_stdio": MCPORTER_STDIO_FILE.exists(),
         "mcporter_http": MCPORTER_HTTP_FILE.exists(),
     }
@@ -131,10 +137,12 @@ if __name__ == "__main__":
     print()
 
     print("Config Files:")
-    print(f"  MCP Config:       {MCP_CONFIG_FILE}")
-    print(f"  Mcporter STDIO:   {MCPORTER_STDIO_FILE}")
-    print(f"  Mcporter HTTP:     {MCPORTER_HTTP_FILE}")
-    print(f"  Models Config:     {MODELS_CONFIG_FILE}")
+    print(f"  MCP Config:         {MCP_CONFIG_FILE}")
+    print(f"  Browsers Config:    {BROWSERS_CONFIG_FILE}")
+    print(f"  Mcporter STDIO:     {MCPORTER_STDIO_FILE}")
+    print(f"  Mcporter HTTP:       {MCPORTER_HTTP_FILE}")
+    print(f"  Models Config:       {MODELS_CONFIG_FILE}")
+    print(f"  Browser Config Dir:  {BROWSER_CONFIG_DIR}")
     print()
 
     print("State Files:")
