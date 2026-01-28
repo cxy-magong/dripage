@@ -2,21 +2,43 @@
 
 基于 FastAPI 的 RESTful API 服务来管理 Chrome 浏览器实例。
 
+## ⚠️ 端口问题
+
+**Windows 上端口 8000/8001 可能被占用。**
+
+如果遇到绑定错误：
+```
+ERROR: [Errno 13] error while attempting to bind on address ('0.0.0.0', 8000):
+[winerror 10013] 以一种访问权限不允许的方式做了一个访问套接字的尝试。
+```
+
+**解决方案：** 使用不同的端口，例如 8888
+
+```bash
+uv run python services/chrome_http/server.py --port 8888
+```
+
+---
+
 ## 快速开始
 
 ### 启动 HTTP API Server
 
 ```bash
-uv run chrome-http-server
+# 默认端口 8000（可能失败）
+uv run python services/chrome_http/server.py
+
+# 使用端口 8888（推荐）
+uv run python services/chrome_http/server.py --port 8888
 ```
 
-服务器将监听 `http://0.0.0.0:8000`
+服务器将监听 `http://0.0.0.0:<port>`
 
 ### 访问 API 文档
 
 打开浏览器访问：
 ```
-http://localhost:8000/docs
+http://localhost:<port>/docs
 ```
 
 ## API 端点
