@@ -174,7 +174,7 @@ async def root():
     }
 
 
-def start_server(host: str = "0.0.0.0", port: int = 8000):
+def start_server(host: str = "0.0.0.0", port: int = 8889):
     """启动 HTTP 服务器"""
     separator = "=" * 70
     logger.info(separator)
