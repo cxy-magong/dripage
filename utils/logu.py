@@ -18,7 +18,7 @@ loguru.logger.remove()
 loggers = {} 
 FORMAT = '<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{file}:{line}</cyan> :<cyan>{function}</cyan> - {message}'
 
-def get_logger(name, console=True, console_level="INFO", file=True, file_level="DEBUG"):  
+def get_logger(name='main', console=True, console_level="INFO", file=True, file_level="DEBUG"):  
     '''
     用法
         # 创建普通日志，并且启用控制台输出，默认保存到 {LOG_DIR}/default.log 文件  
