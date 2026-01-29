@@ -418,61 +418,6 @@ def locate_element_tool(
     return json.dumps(serializable_result, ensure_ascii=False, indent=2)
 
 
-@mcp.tool
-def coordinate_convert_box_tool(
-    box: List[int],
-    original_width: int,
-    original_height: int,
-) -> str:
-    """Convert GLM-4V coordinates back to original image coordinate system.
-
-    Args:
-        box: Bounding box from GLM-4V [xmin, ymin, xmax, ymax]
-        original_width: Original image width
-        original_height: Original image height
-
-    Returns:
-        JSON string with converted coordinates
-    """
-    return coordinate_convert_box.func(box, original_width, original_height)
-
-
-@mcp.tool
-def coordinate_parse_and_convert_tool(
-    text: str,
-    original_width: int,
-    original_height: int,
-) -> str:
-    """Parse coordinates from text and convert back to original image coordinate system.
-
-    Args:
-        text: Text containing coordinates (e.g., from vision model response)
-        original_width: Original image width
-        original_height: Original image height
-
-    Returns:
-        JSON string with converted coordinates
-    """
-    return coordinate_parse_and_convert.func(text, original_width, original_height)
-
-
-@mcp.tool
-def coordinate_convert_from_image_tool(
-    text: str,
-    image_path: str,
-) -> str:
-    """Parse coordinates from text and convert back based on image dimensions.
-
-    Args:
-        text: Text containing coordinates (e.g., from vision model response)
-        image_path: Path to image file (used to get original dimensions)
-
-    Returns:
-        JSON string with converted coordinates
-    """
-    return coordinate_convert_from_image.func(text, image_path)
-
-
 # ==================== Tab Management Tools ====================
 
 @mcp.tool
@@ -586,7 +531,7 @@ if __name__ == "__main__":
 
     if transport == "http":
         # HTTP transport for testing
-        mcp.run(transport="http", port=8000, host="127.0.0.1")
+        mcp.run(transport="http", port=8100, host="127.0.0.1")
     else:
         # STDIO transport (default)
         mcp.run()
