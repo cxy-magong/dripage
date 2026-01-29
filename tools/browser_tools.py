@@ -100,6 +100,7 @@ def browser_navigate(url: str, tab_id: Optional[Union[int, str]] = None) -> str:
     Returns:
         成功消息，包含页面标题和标签信息
     """
+    import json
     from tools.tab_manager import get_tab_object
 
     config = get_config()

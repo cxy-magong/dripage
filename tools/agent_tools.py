@@ -33,6 +33,7 @@ if str(project_dir) not in sys.path:
 from utils.drission_page import create_browser
 from utils.logu import get_logger
 from utils.model_config import get_config as get_global_config
+from tools.tab_manager import get_tab_object
 
 logger = get_logger('agent_tools')
 
