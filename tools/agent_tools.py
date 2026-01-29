@@ -347,7 +347,7 @@ def vision_analyze(
                 raise ValueError(f"图像文件不存在: {image_path}")
         else:
             # 截取指定标签的页面
-            saved_file_path = save_browser_screenshot.func(tab_id=tab_id, prefix="vision", save=True)
+            saved_file_path = save_browser_screenshot(tab_id=tab_id, prefix="vision", save=True)
 
             if saved_file_path is None:
                 raise RuntimeError("截图失败")
