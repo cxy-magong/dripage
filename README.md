@@ -8,6 +8,7 @@ Browser automation and vision analysis via MCP (Model Context Protocol).
 - 📄 **Content Extraction**: Save pages as Markdown, HTML, images, or MHTML
 - 👁️ **Vision Analysis**: Analyze screenshots using GLM-4V vision model
 - 🔍 **Element Location**: Find and locate elements using vision + coordinates
+- 📡 **Network Monitoring**: Capture and analyze HTTP responses with CDP
 
 ## Quick Start
 
@@ -35,6 +36,19 @@ mcporter call --config config/mcporter-http.json dripage.get url:'https://exampl
 
 # Save multiple formats
 mcporter call --config config/mcporter-http.json dripage.get url:'https://example.com' formats:'["markdown","html","img"]'
+
+# Network Listener - Monitor API responses
+# Start listening for JSON API calls
+mcporter call --config config/mcporter-http.json dripage.network_start_listener_tool mimeType:'application/json' url_include:'api'
+
+# Get captured network data
+mcporter call --config config/mcporter-http.json dripage.network_get_listener_data_tool
+
+# Stop listening and clear data
+mcporter call --config config/mcporter-http.json dripage.network_stop_listener_tool clear_data:true
+
+# Monitor all network traffic
+mcporter call --config config/mcporter-http.json dripage.network_start_listener_tool
 ```
 
 ### 3. Use with MCP Clients (Claude Desktop, Cursor, etc.)
@@ -125,6 +139,13 @@ For detailed configuration and MCP tools documentation, see [config/README.md](c
 - `coordinate_convert_box_tool` - Convert GLM-4V coordinates
 - `coordinate_parse_and_convert_tool` - Parse and convert coordinates
 - `coordinate_convert_from_image_tool` - Convert based on image dimensions
+
+### Network Monitoring Tools
+
+- `network_start_listener_tool` - Start monitoring network responses (CDP)
+- `network_get_listener_data_tool` - Get captured network data
+- `network_stop_listener_tool` - Stop monitoring network responses
+- `network_clear_listener_data_tool` - Clear captured network data
 
 ## Requirements
 

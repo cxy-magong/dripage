@@ -42,6 +42,14 @@ from tools import (
     close_tab,
 )
 
+# Import network listener tools
+from tools.network_listener import (
+    get_url_with_response_listener,
+    response_listener_stop,
+    get_response_listener_data,
+    clear_response_listener_data,
+)
+
 
 # Load configuration from config directory
 config_path = project_dir / 'config' / 'mcp_config.yaml'
@@ -475,52 +483,106 @@ def browser_close_tab_tool(tab_id: Union[int, str] = None) -> str:
     return json.dumps(result, ensure_ascii=False, indent=2)
 
 
-@mcp.tool
-def browser_list_tabs_tool() -> str:
-    """List all browser tabs with full information.
-
-    Returns:
-        JSON string with list of tabs including tab_id, title, url, index, is_current
-    """
-    from tools.tab_manager import list_all_tabs
-    result = list_all_tabs()
-    return json.dumps(result, ensure_ascii=False, indent=2)
+# ==================== Network Listener Tools ====================
 
 @mcp.tool
-def browser_new_tab_tool(url: Optional[str] = None) -> str:
-    """Open a new tab.
+def network_start_listener_tool(
+    tab_id: Optional[Union[int, str]] = None,
+    mimeType: Literal[
+        "text/html", "text/css", "text/javascript", "application/javascript",
+        "text/plain", "text/xml", "text/csv", "application/json",
+        "application/octet-stream", "application/zip", "application/pdf",
+        "multipart/form-data", "application/xml",
+        "image/jpeg", "image/png", "image/gif", "image/webp",
+        "image/svg+xml", "image/x-icon",
+        "audio/mpeg", "audio/ogg", "video/mp4", "video/webm", "video/ogg"
+    ] = "application/json",
+    url_include: str = ".",
+    refresh: bool = False
+) -> str:
+    """Start listening to network packets (HTTP responses) on the specified tab.
 
-    Args:
-        url: Optional URL to navigate to in the new tab
-
-    Returns:
-        Success message with new tab title and URL and tab info
-    """
-    from tools.tab_manager import new_tab_object
-
-    tab, metadata = new_tab_object(url)
-
-    result = {
-        "status": "success",
-        "message": "New tab opened",
-        "tab": metadata
-    }
-
-    return json.dumps(result, ensure_ascii=False, indent=2)
-
-@mcp.tool
-def browser_close_tab_tool(tab_id: Union[int, str] = None) -> str:
-    """Close a tab.
+    This tool enables monitoring of network responses using Chrome DevTools Protocol (CDP).
+    It captures responses that match the specified mimeType and URL pattern.
 
     Args:
         tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
+        mimeType: Filter responses by MIME type (default: application/json)
+                  Options include: text/html, text/css, text/javascript,
+                  application/json, image/jpeg, etc.
+        url_include: Filter responses by URL substring (default: "." matches all)
+        refresh: Whether to refresh the page after starting listener (default: False)
 
     Returns:
-        Success message
+        JSON string with listener status, tab info, and configuration
+
+    Example:
+        # Listen for all JSON responses
+        network_start_listener_tool(mimeType="application/json")
+
+        # Listen for responses containing "api" in URL
+        network_start_listener_tool(url_include="api")
+
+        # Listen for HTML responses and refresh page
+        network_start_listener_tool(mimeType="text/html", refresh=True)
     """
-    from tools.tab_manager import close_tab_object
-    result = close_tab_object(tab_id)
-    return json.dumps(result, ensure_ascii=False, indent=2)
+    return get_url_with_response_listener(
+        tab_id=tab_id,
+        mimeType=mimeType,
+        url_include=url_include,
+        refresh=refresh
+    )
+
+
+@mcp.tool
+def network_stop_listener_tool(
+    tab_id: Optional[Union[int, str]] = None,
+    clear_data: bool = False
+) -> str:
+    """Stop listening to network packets.
+
+    Args:
+        tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
+        clear_data: Whether to clear collected data (default: False)
+
+    Returns:
+        JSON string with stop status and tab info
+    """
+    return response_listener_stop(tab_id=tab_id, clear_data=clear_data)
+
+
+@mcp.tool
+def network_get_listener_data_tool() -> str:
+    """Get all collected network packet data.
+
+    Returns:
+        JSON string with count and list of all captured network responses.
+        Each response includes URL, mimeType, status, headers, and other CDP data.
+
+    Example:
+        # Get all captured responses
+        network_get_listener_data_tool()
+
+        # Returns: {"status": "success", "count": 5, "data": [...]}
+    """
+    return get_response_listener_data()
+
+
+@mcp.tool
+def network_clear_listener_data_tool() -> str:
+    """Clear all collected network listener data.
+
+    This tool removes all previously captured network responses from memory.
+    Useful when you want to start fresh or free memory.
+
+    Returns:
+        JSON string with clear status
+
+    Example:
+        network_clear_listener_data_tool()
+        # Returns: {"status": "success", "message": "监听数据已清空"}
+    """
+    return clear_response_listener_data()
 
 
 if __name__ == "__main__":
@@ -531,7 +593,7 @@ if __name__ == "__main__":
 
     if transport == "http":
         # HTTP transport for testing
-        mcp.run(transport="http", port=8100, host="127.0.0.1")
+        mcp.run(transport="http", port=8101, host="127.0.0.1")
     else:
         # STDIO transport (default)
         mcp.run()
