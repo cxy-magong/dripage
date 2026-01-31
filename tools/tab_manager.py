@@ -241,9 +241,8 @@ def close_tab_object(tab_id: Union[int, str]) -> Dict:
         browser = create_browser()
 
         if isinstance(tab_id, int):
-            # 通过索引激活并关闭
-            browser.activate_tab(tab_id)
-            target_tab = browser.latest_tab
+            # 通过索引获取标签
+            target_tab = browser.get_tab(tab_id)
         else:
             # 通过 tab_id 获取
             target_tab = browser.get_tab(tab_id)

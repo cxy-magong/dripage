@@ -10,7 +10,7 @@ from .config import ProxyConfig
 def main():
     """命令行入口"""
     parser = argparse.ArgumentParser(
-        description="CDP代理服务器 - 为外部访问Chrome CDP提供HTTP/WebSocket代理"
+        description="CDP代理服务器 - 为外部访问Chrome CDP提供HTTP/WebSocket代理",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 示例:
