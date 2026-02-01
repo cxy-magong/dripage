@@ -256,9 +256,8 @@ def close_tab(tab_index: Optional[int] = None) -> str:
                     "available_indices": list(range(len(tabs)))
                 }, ensure_ascii=False)
 
-            # Activate the tab first, then close it
-            browser.activate_tab(tab_index)
-            target_tab = browser.get_tab()
+            # Get the tab to be closed directly
+            target_tab = browser.get_tab(tab_index)
 
             if target_tab:
                 target_tab.close()
