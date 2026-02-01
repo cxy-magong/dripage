@@ -6,6 +6,7 @@ Browser Tools - 浏览器操作工具
 使用 Runtime 配置从 config/tools_runtime.yaml 获取默认配置
 """
 
+import json
 import os
 import sys
 from pathlib import Path
