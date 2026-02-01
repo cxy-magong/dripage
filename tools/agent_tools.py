@@ -701,6 +701,7 @@ def locate_element(
         Command 对象，更新 runtime.state 中的定位结果
     """
     from langchain.chat_models import init_chat_model
+    from tools.tab_manager import get_tab_object
 
     config = get_config()
     query = query+"返回格式： box坐标列表，每个box坐标为[x1,y1,x2,y2]，x1,y1为左上角坐标，x2,y2为右下角坐标。"
