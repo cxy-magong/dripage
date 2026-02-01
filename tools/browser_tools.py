@@ -8,11 +8,12 @@ Browser Tools - 浏览器操作工具
 
 import os
 import sys
+import yaml
 from pathlib import Path
 from typing import Optional, Union
 from datetime import datetime
+import json
 from langchain_core.tools import tool
-import yaml
 
 # 添加项目目录到路径
 project_dir = Path(__file__).resolve().parent.parent
@@ -100,7 +101,6 @@ def browser_navigate(url: str, tab_id: Optional[Union[int, str]] = None) -> str:
     Returns:
         成功消息，包含页面标题和标签信息
     """
-    import json
     from tools.tab_manager import get_tab_object
 
     config = get_config()
@@ -140,7 +140,6 @@ def browser_get_current_page(tab_id: Optional[Union[int, str]] = None) -> str:
     Returns:
         当前页面的标题和 URL（JSON 格式）
     """
-    import json
     from tools.tab_manager import get_tab_object
 
     config = get_config()
@@ -183,7 +182,6 @@ def browser_screenshot(
     Returns:
         截图文件路径和标签信息（JSON 格式）
     """
-    import json
     from tools.tab_manager import get_tab_object
 
     config = get_config()
@@ -237,7 +235,6 @@ def browser_click(x: int, y: int, tab_id: Optional[Union[int, str]] = None) -> s
     Returns:
         成功消息和标签信息（JSON 格式）
     """
-    import json
     from tools.tab_manager import get_tab_object
 
     config = get_config()
@@ -291,7 +288,6 @@ def browser_input(
     """
     from DrissionPage.common import Keys
     import time
-    import json
     from tools.tab_manager import get_tab_object
 
     config = get_config()
@@ -350,7 +346,6 @@ def browser_press_key(
     Returns:
         成功消息和标签信息（JSON 格式）
     """
-    import json
     from tools.tab_manager import get_tab_object
 
     config = get_config()
@@ -398,7 +393,6 @@ def browser_scroll(
     Returns:
         成功消息和标签信息（JSON 格式）
     """
-    import json
     from tools.tab_manager import get_tab_object
 
     config = get_config()

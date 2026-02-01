@@ -5,6 +5,7 @@ Based on DrissionPageMCP implementation.
 """
 from typing import List, Literal, Union, Optional
 from tools.tab_manager import get_tab_object
+import json
 
 
 # Global storage for response listener data
@@ -57,7 +58,6 @@ def get_url_with_response_listener(
     Returns:
         str: 监听开启成功的消息
     """
-    import json
 
     try:
         tab, metadata = get_tab_object(tab_id)
@@ -115,7 +115,6 @@ def response_listener_stop(
     Returns:
         str: 监听关闭成功的消息
     """
-    import json
 
     try:
         tab, metadata = get_tab_object(tab_id)
@@ -148,7 +147,6 @@ def get_response_listener_data() -> str:
     Returns:
         str: JSON 格式的监听数据列表
     """
-    import json
 
     try:
         return json.dumps({
@@ -169,7 +167,6 @@ def clear_response_listener_data() -> str:
     Returns:
         str: 清空成功的消息
     """
-    import json
 
     try:
         global response_listener_data

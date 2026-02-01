@@ -642,7 +642,6 @@ def coordinate_convert_from_image(
     Returns:
         JSON 格式的转换后坐标列表
     """
-    import json
     config = get_config()
 
     if config.logging:
