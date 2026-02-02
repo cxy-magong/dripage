@@ -589,7 +589,7 @@ if __name__ == "__main__":
     # Run MCP server with HTTP or STDIO transport
     import sys
     # Check for transport argument
-    transport = "http" if len(sys.argv) > 1 and sys.argv[1] == "http" else "stdio"
+    transport = "http" if len(sys.argv) > 1 and sys.argv[1] == "stdio" else "http"
 
     if transport == "http":
         # HTTP transport for testing
