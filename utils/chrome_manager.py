@@ -463,6 +463,9 @@ class ChromeManager:
         # Legacy mode: get default browser CDP URL
         # Find any running browser
         for browser_name, browser_state in state.items():
+            # Skip non-dictionary entries (e.g., 'total', 'running' counters)
+            if not isinstance(browser_state, dict):
+                continue
             if browser_state.get("status") == "running":
                 if self._is_running(browser_state.get("address", "127.0.0.1:19222")):
                     return {

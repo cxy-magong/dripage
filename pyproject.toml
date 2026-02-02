@@ -30,6 +30,7 @@ dependencies = [
 ]
 
 [project.scripts]
+dripage = "cli:cli"
 dripage-mcp = "mcp_server:main"
 cdp-proxy = "cdp_proxy.start_proxy:main"
 test-cdp-proxy = "cdp_proxy.test_proxy:main"

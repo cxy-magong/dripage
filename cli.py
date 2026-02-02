@@ -1,222 +1,720 @@
 #!/usr/bin/env python
 """
-Dripage CLI - Command-line interface for browser automation and vision tasks.
+Dripage CLI - Unified command-line interface for browser automation and packet capture.
+
+All-in-one CLI that integrates browser management, network packet capture,
+page operations, and visual analysis. Avoids repetitive parameters through
+default configuration management.
 """
 import os
 import sys
-import base64
-import hashlib
+import json
 from pathlib import Path
-from typing import Optional
-
-# Add project directory to path for imports
-# Get the directory containing this script
-project_dir = Path(__file__).resolve().parent
-if str(project_dir) not in sys.path:
-    sys.path.insert(0, str(project_dir))
-
+from typing import Optional, Dict, Any
+from datetime import datetime
 import click
-from zhipuai import ZhipuAI
-from markitdown import MarkItDown
 
-from utils.drission_page import create_browser
+import sys
+project_root = Path(__file__).resolve().parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+from click import echo, style, secho
+from cli_config import (
+    ConfigManager,
+    get_current_config,
+    get_default_config,
+    DEFAULT_CONFIG_FILE,
+    SESSION_CONFIG_FILE
+)
+from cli_browser import (
+    start_browser,
+    stop_browser,
+    get_browser_status,
+    get_cdp_url,
+    verify_cdp_connection,
+    get_page_object
+)
+from cli_capture import (
+    NetworkCapture,
+    PacketFilter,
+    start_global_capture,
+    stop_global_capture,
+    get_global_capture
+)
+from cli_page import (
+    get_markdown,
+    get_screenshot,
+    analyze_vision
+)
 
 
-# Default browser address
-DEFAULT_BROWSER_ADDRESS = '127.0.0.1:19222'
-
-# Default output directory (relative to project root)
-OUTPUT_DIR = project_dir / 'output'
-IMAGES_DIR = OUTPUT_DIR / 'images'
-
-# Ensure output directories exist
-IMAGES_DIR.mkdir(parents=True, exist_ok=True)
-
-
-def get_browser(address: str = DEFAULT_BROWSER_ADDRESS):
-    """Create or get a browser instance."""
-    return create_browser(address=address)
-
+# ==================== CLI Entry Point ====================
 
 @click.group()
-@click.version_option(version='0.1.0')
+@click.version_option(version='0.2.0')
 def cli():
-    """Dripage CLI - Browser automation and vision analysis tool."""
+    """Dripage CLI - Browser automation and packet capture tool.
+
+    Unified command-line interface for controlling browsers, capturing network packets,
+    and analyzing web pages.
+    """
     pass
 
 
-@cli.command()
-@click.argument('url')
-@click.option('--address', default=DEFAULT_BROWSER_ADDRESS, help='Browser address (default: 127.0.0.1:19222)')
-def get2md(url: str, address: str):
-    """Convert a webpage URL to markdown format.
+# ==================== Config Commands ====================
 
-    Args:
-        URL: The webpage URL to convert
-        --address: Browser address (default: 127.0.0.1:19222)
+@cli.group()
+def config():
+    """Configuration management commands."""
+    pass
+
+
+@config.command()
+@click.argument('name', required=False)
+@click.option('--set-default', is_flag=True, help='Set as default configuration')
+def config_set_session(name: Optional[str] = None, set_default: bool = False):
+    """Set or create a session configuration.
+
+    Examples:
+        dripage config set my-session --set-default
+
+        dripage config set dev
     """
-    try:
-        click.echo(f"Navigating to {url}...")
-        page = get_browser(address=address)
-        page.get(url)
+    manager = ConfigManager()
 
-        # Get page HTML
-        html_content = page.html
+    if name:
+        if set_default:
+            # Save current config as default
+            current_config = manager.load_config()
+            manager.save_config(current_config)
+            echo(f"✓ Set current configuration as default")
+            echo(f"  Browser: {current_config.browser.name} @ {current_config.browser.address}")
+        else:
+            # Create new session
+            from cli_config import get_current_config
+            session_config = get_current_config()
+            manager.save_session(name, session_config)
+            manager.set_current_session(name)
+            echo(f"✓ Created session '{name}'")
+            echo(f"  Browser: {session_config.browser.name} @ {session_config.browser.address}")
+    else:
+        # Show current config
+        current_config = manager.load_config()
+        echo("Current Configuration:")
+        echo(f"  Browser: {style(fg='cyan')}{current_config.browser.name} @ {current_config.browser.address}")
+        echo(f"  Vision: {style(fg='cyan')}{current_config.vision.model}")
+        echo(f"  Capture: {style(fg='green' if current_config.capture.enabled else 'red')}{current_config.capture.enabled}")
+        echo()
+        echo(f"Config file: {DEFAULT_CONFIG_FILE}")
+        echo(f"Session file: {SESSION_CONFIG_FILE}")
 
-        click.echo("Converting to markdown...")
 
-        # Save HTML to temp file for markitdown
-        import tempfile
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
-            f.write(html_content)
-            temp_file = f.name
+@config.command()
+def list_sessions():
+    """List all available sessions."""
+    manager = ConfigManager()
+    sessions = manager.list_sessions()
 
-        try:
-            md = MarkItDown()
-            result = md.convert(temp_file)
-        finally:
-            os.unlink(temp_file)  # Clean up temp file
+    if not sessions:
+        echo("ℹ️  No sessions found")
+        return
 
-        click.echo("\n" + "=" * 80)
-        click.echo(result.text_content)
-        click.echo("=" * 80)
+    echo("Available Sessions:")
+    echo()
+    for session in sessions:
+        session_id = session.get('session_id', 'default')
+        browser = session.get('browser', {})
+        echo(f"  {style(fg='cyan')}{session_id}:")
+        echo(f"    Browser: {browser.get('name', 'default')} @ {browser.get('address', 'N/A')}")
 
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+
+@config.command()
+@click.argument('name')
+def use_session(name: str):
+    """Switch to a session configuration.
+
+    Example:
+        dripage config use dev
+    """
+    manager = ConfigManager()
+    sessions = manager.list_sessions()
+    session_ids = [s.get('session_id') for s in sessions]
+
+    if name not in session_ids:
+        echo(f"✗ Session '{name}' not found")
+        echo(f"  Available sessions: {', '.join(session_ids)}")
+        sys.exit(1)
+
+    # Switch to session
+    manager.set_current_session(name)
+    echo(f"✓ Switched to session '{name}'")
+
+    # Print current config
+    current_config = manager.load_session(name)
+    if current_config:
+        echo(f"  Browser: {current_config.browser.name} @ {current_config.browser.address}")
+        echo(f"  Vision: {current_config.vision.model}")
+        echo(f"  Capture: {current_config.capture.enabled}")
+
+
+@config.command()
+def reset():
+    """Reset to default configuration."""
+    ConfigManager().save_config(get_default_config())
+    echo("✓ Reset to default configuration")
+
+
+# ==================== Browser Commands ====================
+
+@cli.group()
+def browser():
+    """Browser management commands."""
+    pass
+
+
+@browser.command()
+@click.option('--name', help='Browser name from config/browsers.yaml')
+@click.option('--address', help='Browser address (e.g., 127.0.0.1:19222)')
+@click.option('--browser-path', help='Path to browser executable')
+@click.option('--user-data-dir', help='Path to user data directory')
+def browser_start(name: Optional[str], address: str, browser_path: str, user_data_dir: str):
+    """Start a browser instance.
+
+    Examples:
+        dripage browser start
+
+        dripage browser start --name browser1
+
+        dripage browser start --address 127.0.0.1:19222
+    """
+    config_override = {}
+    if address:
+        config_override['address'] = address
+    if browser_path:
+        config_override['browser_path'] = browser_path
+    if user_data_dir:
+        config_override['user_data_dir'] = user_data_dir
+
+    result = start_browser(name=name, config_override=config_override)
+
+    if result['success']:
+        data = result['data']
+        echo(f"✓ Browser started successfully")
+        echo(f"  Name: {data.get('name', 'default')}")
+        echo(f"  CDP URL: {data.get('cdp_url', 'N/A')}")
+        echo(f"  Address: {data.get('address', 'N/A')}")
+        echo(f"  PID: {data.get('pid', 'N/A')}")
+    else:
+        echo(style(f"✗ {result['message']}", fg='red', bold=True))
         sys.exit(1)
 
 
-@cli.command()
-@click.option('--id', default=None, help='Page element ID to screenshot (optional)')
-@click.option('--address', default=DEFAULT_BROWSER_ADDRESS, help='Browser address (default: 127.0.0.1:19222)')
-def screenshot(id: Optional[str], address: str):
-    """Take a screenshot of the current page or specific element.
+@browser.command()
+@click.option('--name', help='Browser name to stop')
+def browser_stop(name: Optional[str] = None):
+    """Stop a browser instance.
 
-    Args:
-        --id: Element ID to screenshot (default: None, captures full page)
-        --address: Browser address (default: 127.0.0.1:19222)
+    Examples:
+        dripage browser stop
+
+        dripage browser stop --name browser1
     """
-    try:
-        page = get_browser(address=address)
+    result = stop_browser(name=name)
 
-        if id:
-            click.echo(f"Capturing screenshot of element with ID: {id}...")
-            element = page.ele(f'#{id}')
-            if not element:
-                click.echo(f"Error: Element with ID '{id}' not found", err=True)
-                sys.exit(1)
-
-            # Screenshot specific element
-            screenshot_data = element.get_screenshot(as_bytes=True)
-            filename = f"screenshot_{id}_{int(os.path.getmtime(os.getcwd()))}.png"
-        else:
-            click.echo("Capturing full page screenshot...")
-            # Screenshot full page
-            screenshot_data = page.get_screenshot(as_bytes=True)
-            filename = f"screenshot_{int(os.path.getmtime(os.getcwd()))}.png"
-
-        # Save to output/images
-        filepath = IMAGES_DIR / filename
-        with open(filepath, 'wb') as f:
-            f.write(screenshot_data)
-
-        click.echo(f"Screenshot saved to: {filepath}")
-
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+    if result['success']:
+        data = result.get('data', {})
+        echo(f"✓ Browser stopped: {data.get('name', 'default')}")
+    else:
+        echo(style(f"✗ {result['message']}", fg='red', bold=True))
         sys.exit(1)
 
 
-@cli.command()
-@click.argument('query')
-@click.option('--image', default=None, help='Path to image file (optional, uses current screenshot if not provided)')
-@click.option('--model', default='glm-4v-flash', help='Model to use: glm-4v, glm-4v-plus, glm-4v-flash (default: glm-4v-flash)')
-@click.option('--api-key', default=None, help='ZhipuAI API key (default: from ZHIPUAI_API_KEY env var)')
-@click.option('--address', default=DEFAULT_BROWSER_ADDRESS, help='Browser address (default: 127.0.0.1:19222)')
-def vision(query: str, image: Optional[str], model: str, api_key: Optional[str], address: str):
-    """Analyze images using GLM-4V vision model.
+@browser.command()
+@click.option('--name', help='Browser name to check. If not specified, checks all browsers')
+def browser_status(name: Optional[str] = None):
+    """Get browser status information.
 
-    Args:
-        QUERY: The query/question about the image
-        --image: Path to image file (optional)
-        --model: Vision model to use (default: glm-4v-flash)
-        --api-key: ZhipuAI API key (default: from ZHIPUAI_API_KEY env var)
-        --address: Browser address (default: 127.0.0.1:19222)
+    Examples:
+        dripage browser status
+
+        dripage browser status --name browser1
     """
-    try:
-        # Get API key
-        if not api_key:
-            api_key = os.environ.get('ZAI_API_KEY')
-            if not api_key:
-                click.echo("Error: ZAI_API_KEY not found. Set it as environment variable or use --api-key option", err=True)
-                sys.exit(1)
+    result = get_browser_status(name=name)
 
-        # Initialize client
-        click.echo(f"Initializing ZhipuAI client with model: {model}...")
-        client = ZhipuAI(api_key=api_key)
+    if result['success']:
+        data = result['data']
+        echo(f"✓ Browser status retrieved")
 
-        # Determine image source
-        if image:
-            # Use provided image file
-            image_path = Path(image)
-            if not image_path.exists():
-                click.echo(f"Error: Image file not found: {image}", err=True)
-                sys.exit(1)
-            click.echo(f"Using image: {image_path}")
+        # Handle single browser or all browsers
+        if 'browsers' in data:
+            # Multiple browsers
+            browsers = data['browsers']
+            echo(f"  Total browsers: {data.get('total', 0)}")
+            echo(f"  Running: {data.get('running', 0)}")
+            echo()
+
+            for browser_name, browser_info in browsers.items():
+                status_icon = style('●', fg='green', bold=True) if browser_info.get('status') == 'running' else '○'
+                status_text = style('running', fg='green') if browser_info.get('status') == 'running' else 'stopped'
+
+                echo(f"  {status_icon} {style(browser_name, fg='cyan')}: {status_text}")
+                if browser_info.get('status') == 'running':
+                    echo(f"    Address: {browser_info.get('address', 'N/A')}")
+                    echo(f"    CDP URL: {browser_info.get('cdp_url', 'N/A')}")
+                    echo(f"    PID: {browser_info.get('pid', 'N/A')}")
+                    echo(f"    Started: {browser_info.get('start_time', 'N/A')}")
         else:
-            # Take current screenshot
-            click.echo("No image provided, capturing current page...")
-            page = get_browser(address=address)
-            screenshot_data = page.get_screenshot(as_bytes=True)
+            # Single browser
+            browser_info = data
+            status_icon = style('●', fg='green', bold=True) if browser_info.get('status') == 'running' else '○'
+            status_text = style('running', fg='green') if browser_info.get('status') == 'running' else 'stopped'
 
-            # Save to temporary file
-            image_path = IMAGES_DIR / f"temp_vision_{int(os.path.getmtime(os.getcwd()))}.png"
-            with open(image_path, 'wb') as f:
-                f.write(screenshot_data)
-            click.echo(f"Screenshot saved to: {image_path}")
+            echo(f"  {status_icon} {style(browser_info.get('name', 'default'), fg='cyan')}: {status_text}")
+            if browser_info.get('status') == 'running':
+                echo(f"    Address: {browser_info.get('address', 'N/A')}")
+                echo(f"    CDP URL: {browser_info.get('cdp_url', 'N/A')}")
+                echo(f"    PID: {browser_info.get('pid', 'N/A')}")
+                echo(f"    Started: {browser_info.get('start_time', 'N/A')}")
+    else:
+        echo(style(f"✗ {result['message']}", fg='red', bold=True))
+        sys.exit(1)
 
-        # Encode image to base64
-        with open(image_path, 'rb') as f:
-            image_base64 = base64.b64encode(f.read()).decode('utf-8')
 
-        # Send to vision model
-        click.echo(f"Analyzing image with query: {query}...")
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": image_base64
-                            }
-                        },
-                        {
-                            "type": "text",
-                            "text": query
-                        }
-                    ]
-                }
-            ],
-            temperature=0.7,
-            max_tokens=1024
+@browser.command()
+@click.option('--name', help='Browser name to get CDP URL for. If not specified, gets default browser')
+def browser_cdp(name: Optional[str] = None):
+    """Get CDP WebSocket URL for browser.
+
+    Examples:
+        dripage browser cdp
+
+        dripage browser cdp --name browser1
+    """
+    result = get_cdp_url(name=name)
+
+    if result['success']:
+        data = result['data']
+        cdp_url = data.get('cdp_url', '')
+
+        echo(f"✓ CDP URL retrieved")
+        echo(f"  Browser: {data.get('name', 'default')}")
+        if cdp_url:
+            echo(f"  CDP URL: {style(cdp_url, fg='cyan')}")
+        else:
+            echo(f"  CDP URL: {style('Not connected', fg='yellow')}")
+    else:
+        echo(style(f"✗ {result['message']}", fg='red', bold=True))
+        sys.exit(1)
+
+
+@browser.command()
+def browser_verify():
+    """Verify CDP connection by checking /json/version endpoint.
+
+    Example:
+        dripage browser verify
+    """
+    if verify_cdp_connection():
+        echo("✓ CDP connection verified successfully")
+    else:
+        echo("✗ CDP connection failed")
+        echo("  Make sure browser is running with CDP enabled")
+
+
+# ==================== Capture Commands ====================
+
+@cli.group()
+def capture():
+    """Network packet capture commands."""
+    pass
+
+
+@capture.command()
+@click.option('--url-contains', help='Filter packets by URL containing text')
+@click.option('--content-type', help='Filter by resource type (e.g., application/json)')
+@click.option('--method', help='Filter by HTTP method (e.g., GET, POST)')
+@click.option('--response-contains', help='Filter by response containing text')
+@click.option('--status-code', type=int, help='Filter by HTTP status code')
+def capture_start(url_contains: Optional[str] = None, content_type: Optional[str] = None,
+                method: Optional[str] = None, response_contains: Optional[str] = None,
+                status_code: Optional[int] = None):
+    """Start background packet capture with filters.
+
+    Examples:
+        dripage capture start
+
+        dripage capture start --content-type application/json --url-contains baidu
+
+        dripage capture start --method POST
+    """
+    # Build filter criteria
+    filter_criteria = None
+    if any([url_contains, content_type, method, response_contains, status_code]):
+        filter_criteria = PacketFilter(
+            url_contains=url_contains,
+            content_type=content_type,
+            method=method,
+            response_contains=response_contains,
+            status_code=status_code
         )
 
-        # Print result
-        click.echo("\n" + "=" * 80)
-        click.echo("Vision Analysis Result:")
-        click.echo("=" * 80)
-        click.echo(response.choices[0].message.content)
-        click.echo("=" * 80)
+    # Get page object
+    page = get_page_object()
 
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        import traceback
-        traceback.print_exc()
+    # Create capture instance
+    capture = NetworkCapture(page_object=page)
+
+    # Start capture
+    if capture.start_capture(filter_criteria=filter_criteria):
+        filter_desc = capture._format_filter(filter_criteria)
+        echo(f"✓ Packet capture started")
+        echo(f"  Output dir: {capture.output_dir}")
+        if filter_criteria:
+            echo(f"  Filters: {filter_desc}")
+        else:
+            echo(f"  Filters: all (capturing all packets)")
+        echo()
+        echo("💡 Packets will be captured to files for filtering")
+        echo("💡 Use 'dripage capture stop' to save and stop capture")
+    else:
+        echo("✗ Failed to start packet capture")
         sys.exit(1)
 
+
+@capture.command()
+def capture_stop():
+    """Stop packet capture and save remaining packets.
+
+    Example:
+        dripage capture stop
+    """
+    if stop_global_capture():
+        echo("✓ Packet capture stopped and saved")
+    else:
+        echo("⚠️  No active capture to stop")
+
+
+@capture.command()
+@click.option('--limit', type=int, default=100, help='Maximum number of packets to return (default: 100)')
+@click.option('--filter', help='jq-style filter query (e.g., .url, .status_code, contains("keyword"))')
+def capture_query(limit: int, filter: Optional[str] = None):
+    """Query captured packets from files.
+
+    Examples:
+        dripage capture query
+
+        dripage capture query --limit 50
+
+        dripage capture query --filter '.status_code == 200'
+    """
+    from cli_capture import NetworkCapture
+
+    # Find most recent capture file
+    capture = NetworkCapture()
+    results = capture.query_packets(limit=limit, filter_query=filter)
+
+    if results:
+        echo(f"✓ Found {len(results)} packets")
+        echo(f"  Limit: {limit}")
+        if filter:
+            echo(f"  Filter: {filter}")
+
+        # Print summary
+        status_codes = {}
+        methods = {}
+        content_types = {}
+
+        for packet in results:
+            status = packet.get('status_code')
+            method = packet.get('method')
+            content_type = packet.get('resource_type')
+
+            if status:
+                status_codes[status] = status_codes.get(status, 0) + 1
+            if method:
+                methods[method] = methods.get(method, 0) + 1
+            if content_type:
+                content_types[content_type] = content_types.get(content_type, 0) + 1
+
+        echo()
+        echo(f"  Status codes: {status_codes}")
+        echo(f"  Methods: {methods}")
+        echo(f"  Content types: {content_types}")
+
+        # Print first few packets
+        echo()
+        echo(f"📦 Sample packets (first 5):")
+        for i, packet in enumerate(results[:5], 1):
+            packet_url = packet.get('url', 'N/A')[:60]
+            packet_method = packet.get('method', 'N/A')
+            packet_status = packet.get('status_code', 'N/A')
+
+            echo(f"  [{i}] {packet_method:5} {packet_status:5} {packet_url}")
+    else:
+        echo("ℹ️  No packets found")
+        echo("  Use 'dripage capture start' to begin capturing")
+
+
+# ==================== Page Commands ====================
+
+@cli.group()
+def page():
+    """Page operation commands."""
+    pass
+
+
+@page.command()
+@click.option('--url', help='Page URL to navigate to. If not specified, gets current page')
+@click.option('--no-save', is_flag=True, help='Do not save to file, return content only')
+def page_get(url: Optional[str] = None, no_save: bool = False):
+    """Get page content as markdown.
+
+    Examples:
+        dripage page get
+
+        dripage page get https://example.com
+
+        dripage page get --no-save
+    """
+    result = get_markdown(url=url, save=not no_save)
+
+    data = json.loads(result)
+    if data.get('status') == 'success':
+        echo(f"✓ Page retrieved successfully")
+        echo(f"  URL: {data.get('url', 'N/A')}")
+        echo(f"  Title: {data.get('title', 'N/A')}")
+        if no_save:
+            # Show content preview
+            content = data.get('content', '')
+            preview = content[:200] + '...' if len(content) > 200 else content
+            echo(f"  Content: {preview}")
+        else:
+            echo(f"  Saved to: {data.get('file', 'N/A')}")
+    else:
+        echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
+
+
+@page.command()
+def page_screenshot():
+    """Take a screenshot of current page.
+
+    Example:
+        dripage page screenshot
+    """
+    result = get_screenshot(full_page=True, save=True)
+
+    data = json.loads(result)
+    if data.get('status') == 'success':
+        echo(f"✓ Screenshot taken successfully")
+        echo(f"  Saved to: {data.get('file', 'N/A')}")
+        echo(f"  Full page: {data.get('full_page', True)}")
+    else:
+        echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
+
+
+@page.command()
+@click.option('--query', required=True, help='Question about the page')
+@click.option('--image', help='Path to image file. If not specified, takes screenshot')
+def page_vision(query: str, image: Optional[str] = None):
+    """Analyze page screenshot with vision model.
+
+    Examples:
+        dripage page vision "What's the main heading?"
+
+        dripage page vision --image /path/to/screenshot.png "Describe this image"
+    """
+    result = analyze_vision(query=query, image_path=image)
+
+    data = json.loads(result)
+    if data.get('status') == 'success':
+        echo(f"✓ Vision analysis completed")
+        if 'image_size' in data:
+            size = data['image_size']
+            echo(f"  Image size: {size.get('width', 'N/A')}x{size.get('height', 'N/A')}")
+        if 'file' in data:
+            echo(f"  Source image: {data.get('file', 'N/A')}")
+
+        # Show analysis
+        if 'analysis' in data:
+            echo(f"  Analysis: {data.get('analysis', 'N/A')[:100]}...")
+    else:
+        echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
+
+
+# ==================== Action Commands ====================
+
+@cli.group()
+def action():
+    """Element interaction commands (click, input, scroll)."""
+    pass
+
+
+@action.command()
+@click.argument('x', type=int, required=True)
+@click.argument('y', type=int, required=True)
+@click.option('--clear', is_flag=True, default=True, help='Clear existing text before input (default: True)')
+@click.option('--text', required=True, help='Text to input')
+def action_click(x: int, y: int, clear: bool, text: str):
+    """Click at coordinates on the page.
+
+    Examples:
+        dripage action click 100 200 --text "search"
+
+        dripage action click 395 76 --clear --text "username"
+    """
+    from tools import browser_click
+
+    result = browser_click.func(x=x, y=y, tab_id=None)
+
+    data = json.loads(result)
+    if data.get('status') == 'success':
+        echo(f"✓ Clicked at coordinates ({x}, {y})")
+        if 'tab' in data:
+            tab_info = data['tab']
+            echo(f"  Tab: {tab_info.get('title', 'N/A')}")
+    else:
+        echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
+
+
+@action.command()
+@click.argument('x', type=int, required=True)
+@click.argument('y', type=int, required=True)
+@click.option('--clear', is_flag=True, default=True, help='Clear existing text before input (default: True)')
+@click.option('--text', required=True, help='Text to input')
+def action_input(x: int, y: int, clear: bool, text: str):
+    """Input text at coordinates on the page.
+
+    Examples:
+        dripage action input 395 76 --clear --text "hello world"
+
+        dripage action input 500 300 --no-clear --text "test"
+    """
+    from tools import browser_input
+
+    result = browser_input.func(x=x, y=y, text=text, clear=clear, tab_id=None)
+
+    data = json.loads(result)
+    if data.get('status') == 'success':
+        echo(f"✓ Input text: {text[:50]}...")
+        if 'tab' in data:
+            tab_info = data['tab']
+            echo(f"  Tab: {tab_info.get('title', 'N/A')}")
+    else:
+        echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
+
+
+@action.command()
+@click.option('--direction', type=click.Choice(['up', 'down']), default='down', help='Scroll direction')
+@click.option('--amount', type=int, default=500, help='Scroll amount in pixels')
+def action_scroll(direction: str, amount: int):
+    """Scroll the page.
+
+    Examples:
+        dripage action scroll down 500
+
+        dripage action scroll up 300
+    """
+    from tools import browser_scroll
+
+    result = browser_scroll.func(direction=direction, amount=amount, tab_id=None)
+
+    data = json.loads(result)
+    if data.get('status') == 'success':
+        echo(f"✓ Scrolled {direction} {amount}px")
+        if 'tab' in data:
+            tab_info = data['tab']
+            echo(f"  Tab: {tab_info.get('title', 'N/A')}")
+    else:
+        echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
+
+
+# ==================== Tab Commands ====================
+
+@cli.group()
+def tab():
+    """Tab management commands."""
+    pass
+
+
+@tab.command()
+def tab_list():
+    """List all browser tabs.
+
+    Example:
+        dripage tab list
+    """
+    from tools import list_tabs
+
+    result = list_tabs()
+    data = json.loads(result)
+
+    if 'tabs' in data:
+        tabs = data['tabs']
+        echo(f"✓ Found {len(tabs)} tabs")
+        echo()
+        for i, tab in enumerate(tabs, 1):
+            tab_id = tab.get('tab_id', 'N/A')
+            tab_title = tab.get('title', 'N/A')
+            tab_url = tab.get('url', 'N/A')
+            current = ' [current]' if tab.get('is_current', False) else ''
+
+            echo(f"  [{i}] {style(current, fg='green')} {tab_id}: {tab_title}")
+            if tab_url:
+                echo(f"      URL: {tab_url[:60]}...")
+    else:
+        echo("ℹ️  No tabs found")
+
+
+@tab.command()
+@click.option('--url', help='URL to open in new tab')
+def tab_new(url: Optional[str] = None):
+    """Open a new tab.
+
+    Example:
+        dripage tab new --url https://example.com
+    """
+    from tools import new_tab
+
+    result = new_tab(url=url)
+    data = json.loads(result)
+
+    if data.get('status') == 'success':
+        tab = data.get('tab', {})
+        echo(f"✓ New tab opened")
+        echo(f"  Tab ID: {tab.get('tab_id', 'N/A')}")
+        echo(f"  Title: {tab.get('title', 'N/A')}")
+        if tab.get('url'):
+            echo(f"  URL: {tab.get('url', 'N/A')}")
+    else:
+        echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
+
+
+@tab.command()
+@click.argument('tab_id', required=False)
+def tab_close(tab_id: Optional[str] = None):
+    """Close a tab.
+
+    Examples:
+        dripage tab close
+
+        dripage tab close 0
+    """
+    from tools import close_tab
+
+    result = close_tab(tab_id=tab_id)
+    data = json.loads(result)
+
+    if data.get('status') == 'success':
+        tab = data.get('tab', {})
+        echo(f"✓ Tab closed")
+        echo(f"  Tab ID: {tab.get('tab_id', 'N/A')}")
+        echo(f"  Title: {tab.get('title', 'N/A')}")
+    else:
+        echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
+
+
+# ==================== Main Entry Point ====================
 
 if __name__ == '__main__':
     cli()

@@ -8,7 +8,7 @@ Browser automation and vision analysis via MCP (Model Context Protocol).
 - 📄 **Content Extraction**: Save pages as Markdown, HTML, images, or MHTML
 - 👁️ **Vision Analysis**: Analyze screenshots using GLM-4V vision model
 - 🔍 **Element Location**: Find and locate elements using vision + coordinates
-- 📡 **Network Monitoring**: Capture and analyze HTTP responses with CDP
+- 📡 **Network Packet Capture**: Background packet monitoring with filtering capabilities
 
 ## Quick Start
 
