@@ -70,7 +70,7 @@ def config():
     pass
 
 
-@config.command()
+@config.command(name='set')
 @click.argument('name', required=False)
 @click.option('--set-default', is_flag=True, help='Set as default configuration')
 def config_set_session(name: Optional[str] = None, set_default: bool = False):
@@ -110,7 +110,7 @@ def config_set_session(name: Optional[str] = None, set_default: bool = False):
         echo(f"Session file: {SESSION_CONFIG_FILE}")
 
 
-@config.command()
+@config.command(name='list')
 def list_sessions():
     """List all available sessions."""
     manager = ConfigManager()
@@ -129,7 +129,7 @@ def list_sessions():
         echo(f"    Browser: {browser.get('name', 'default')} @ {browser.get('address', 'N/A')}")
 
 
-@config.command()
+@config.command(name='use')
 @click.argument('name')
 def use_session(name: str):
     """Switch to a session configuration.
@@ -158,7 +158,7 @@ def use_session(name: str):
         echo(f"  Capture: {current_config.capture.enabled}")
 
 
-@config.command()
+@config.command(name='reset')
 def reset():
     """Reset to default configuration."""
     ConfigManager().save_config(get_default_config())
@@ -173,7 +173,7 @@ def browser():
     pass
 
 
-@browser.command()
+@browser.command(name='start')
 @click.option('--name', help='Browser name from config/browsers.yaml')
 @click.option('--address', help='Browser address (e.g., 127.0.0.1:19222)')
 @click.option('--browser-path', help='Path to browser executable')
@@ -210,7 +210,7 @@ def browser_start(name: Optional[str], address: str, browser_path: str, user_dat
         sys.exit(1)
 
 
-@browser.command()
+@browser.command(name='stop')
 @click.option('--name', help='Browser name to stop')
 def browser_stop(name: Optional[str] = None):
     """Stop a browser instance.
@@ -230,7 +230,7 @@ def browser_stop(name: Optional[str] = None):
         sys.exit(1)
 
 
-@browser.command()
+@browser.command(name='status')
 @click.option('--name', help='Browser name to check. If not specified, checks all browsers')
 def browser_status(name: Optional[str] = None):
     """Get browser status information.
@@ -281,7 +281,7 @@ def browser_status(name: Optional[str] = None):
         sys.exit(1)
 
 
-@browser.command()
+@browser.command(name='cdp')
 @click.option('--name', help='Browser name to get CDP URL for. If not specified, gets default browser')
 def browser_cdp(name: Optional[str] = None):
     """Get CDP WebSocket URL for browser.
@@ -308,7 +308,7 @@ def browser_cdp(name: Optional[str] = None):
         sys.exit(1)
 
 
-@browser.command()
+@browser.command(name='verify')
 def browser_verify():
     """Verify CDP connection by checking /json/version endpoint.
 
@@ -330,7 +330,7 @@ def capture():
     pass
 
 
-@capture.command()
+@capture.command(name='start')
 @click.option('--url-contains', help='Filter packets by URL containing text')
 @click.option('--content-type', help='Filter by resource type (e.g., application/json)')
 @click.option('--method', help='Filter by HTTP method (e.g., GET, POST)')
@@ -382,7 +382,7 @@ def capture_start(url_contains: Optional[str] = None, content_type: Optional[str
         sys.exit(1)
 
 
-@capture.command()
+@capture.command(name='stop')
 def capture_stop():
     """Stop packet capture and save remaining packets.
 
@@ -395,7 +395,7 @@ def capture_stop():
         echo("⚠️  No active capture to stop")
 
 
-@capture.command()
+@capture.command(name='query')
 @click.option('--limit', type=int, default=100, help='Maximum number of packets to return (default: 100)')
 @click.option('--filter', help='jq-style filter query (e.g., .url, .status_code, contains("keyword"))')
 def capture_query(limit: int, filter: Optional[str] = None):
@@ -464,7 +464,7 @@ def page():
     pass
 
 
-@page.command()
+@page.command(name='get')
 @click.option('--url', help='Page URL to navigate to. If not specified, gets current page')
 @click.option('--no-save', is_flag=True, help='Do not save to file, return content only')
 def page_get(url: Optional[str] = None, no_save: bool = False):
@@ -495,7 +495,7 @@ def page_get(url: Optional[str] = None, no_save: bool = False):
         echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
 
 
-@page.command()
+@page.command(name='screenshot')
 def page_screenshot():
     """Take a screenshot of current page.
 
@@ -513,7 +513,7 @@ def page_screenshot():
         echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
 
 
-@page.command()
+@page.command(name='vision')
 @click.option('--query', required=True, help='Question about the page')
 @click.option('--image', help='Path to image file. If not specified, takes screenshot')
 def page_vision(query: str, image: Optional[str] = None):
@@ -550,7 +550,7 @@ def action():
     pass
 
 
-@action.command()
+@action.command(name='click')
 @click.argument('x', type=int, required=True)
 @click.argument('y', type=int, required=True)
 @click.option('--clear', is_flag=True, default=True, help='Clear existing text before input (default: True)')
@@ -577,7 +577,7 @@ def action_click(x: int, y: int, clear: bool, text: str):
         echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
 
 
-@action.command()
+@action.command(name='input')
 @click.argument('x', type=int, required=True)
 @click.argument('y', type=int, required=True)
 @click.option('--clear', is_flag=True, default=True, help='Clear existing text before input (default: True)')
@@ -604,7 +604,7 @@ def action_input(x: int, y: int, clear: bool, text: str):
         echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
 
 
-@action.command()
+@action.command(name='scroll')
 @click.option('--direction', type=click.Choice(['up', 'down']), default='down', help='Scroll direction')
 @click.option('--amount', type=int, default=500, help='Scroll amount in pixels')
 def action_scroll(direction: str, amount: int):
@@ -637,7 +637,7 @@ def tab():
     pass
 
 
-@tab.command()
+@tab.command(name='list')
 def tab_list():
     """List all browser tabs.
 
@@ -666,7 +666,7 @@ def tab_list():
         echo("ℹ️  No tabs found")
 
 
-@tab.command()
+@tab.command(name='new')
 @click.option('--url', help='URL to open in new tab')
 def tab_new(url: Optional[str] = None):
     """Open a new tab.
@@ -690,7 +690,7 @@ def tab_new(url: Optional[str] = None):
         echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
 
 
-@tab.command()
+@tab.command(name='close')
 @click.argument('tab_id', required=False)
 def tab_close(tab_id: Optional[str] = None):
     """Close a tab.
