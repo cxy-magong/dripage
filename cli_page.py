@@ -174,6 +174,9 @@ def analyze_vision(query: str, image_path: Optional[str] = None) -> str:
             runtime=None
         ))
 
+        # Add status field for CLI compatibility
+        result_dict['status'] = 'success'
+
         echo(f"✓ Vision analysis completed")
 
         return json.dumps(result_dict, ensure_ascii=False, indent=2)
