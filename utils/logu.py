@@ -18,12 +18,12 @@ loguru.logger.remove()
 loggers = {} 
 FORMAT = '<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{file}:{line}</cyan> :<cyan>{function}</cyan> - {message}'
 
-def get_logger(name='main', console=True, console_level="INFO", file=True, file_level="DEBUG"):  
+def get_logger(name='main', console=True, console_level="INFO", file=True, file_level="DEBUG"):
     '''
     用法
-        # 创建普通日志，并且启用控制台输出，默认保存到 {LOG_DIR}/default.log 文件  
-        logger = get_logger("default", console=True) 
-        
+        # 创建普通日志，并且启用控制台输出，默认保存到 {LOG_DIR}/default.log 文件
+        logger = get_logger("default", console=True)
+
         # 创建特定名称的日志和日志文件，保存到 {LOG_DIR}/斌的世界/gift.log 文件
         user_log = get_logger("斌的世界/gift")
 
@@ -31,19 +31,25 @@ def get_logger(name='main', console=True, console_level="INFO", file=True, file_
         user_log.info("将控制台日志器、文件日志器，添加进日志器对象中")
         logger.info("这是一条info消息")
     '''
-    global loggers  
-    if name in loggers:  
-        return loggers[name]  # 如果已经存在，则直接返回      # 创建用户特定的日志文件  
-    log_file = f"{name}.log"  
-    # 添加日志处理器，过滤出只包含该用户名的日志记录  
+    global loggers
+    # 检查是否在 CLI 模式下（通过环境变量 DRIPAGE_CLI）
+    # CLI 模式下不输出到 console，避免干扰命令行输出
+    if os.environ.get('DRIPAGE_CLI') == '1':
+        console = False
+
+    if name in loggers:
+        return loggers[name]  # 如果已经存在，则直接返回      # 创建用户特定的日志文件
+    log_file = f"{name}.log"
+    # 添加日志处理器，过滤出只包含该用户名的日志记录
     if file:
         loguru.logger.add(LOG_DIR/log_file,level=file_level, format=FORMAT, filter=lambda record: record["extra"].get("name") == name)
     if console:
         loguru.logger.add(sys.stderr, format=FORMAT,level=console_level, filter=lambda record: record["extra"].get("name") == name)
-    user_logger = loguru.logger.bind(name=name)  
-    user_logger.info(f"日志文件路径：{LOG_DIR/log_file}")
-    loggers[name] = user_logger  
-    return user_logger  
+    user_logger = loguru.logger.bind(name=name)
+    if file:
+        user_logger.info(f"日志文件路径：{LOG_DIR/log_file}")
+    loggers[name] = user_logger
+    return user_logger
 
 logger = get_logger('main')
 

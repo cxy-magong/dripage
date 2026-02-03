@@ -20,6 +20,8 @@ set "WRAPPER=%TARGET_DIR%\dripage"
 
 (
 echo #!/bin/bash
+echo REM 设置环境变量标志，表示这是 CLI 调用（禁用 console 日志）
+echo export DRIPAGE_CLI=1
 echo DRIPAGE_HOME="%DRIPAGE_HOME:\=/%"
 echo "$DRIPAGE_HOME/.venv/Scripts/python.exe" "$DRIPAGE_HOME/cli.py" "$@"
 ) > "%WRAPPER%"
@@ -29,6 +31,8 @@ set "WRAPPER_CMD=%TARGET_DIR%\dripage.cmd"
 
 (
 echo @echo off
+echo REM 设置环境变量标志，表示这是 CLI 调用（禁用 console 日志）
+echo set "DRIPAGE_CLI=1"
 echo setlocal
 echo set "DRIPAGE_HOME=%DRIPAGE_HOME%"
 echo "%%DRIPAGE_HOME%%\.venv\Scripts\python.exe" "%%DRIPAGE_HOME%%\cli.py" %%*
@@ -40,6 +44,8 @@ set "WRAPPER_BAT=%TARGET_DIR%\dripage.bat"
 
 (
 echo @echo off
+echo REM 设置环境变量标志，表示这是 CLI 调用（禁用 console 日志）
+echo set "DRIPAGE_CLI=1"
 echo setlocal
 echo set "DRIPAGE_HOME=%DRIPAGE_HOME%"
 echo "%%DRIPAGE_HOME%%\.venv\Scripts\python.exe" "%%DRIPAGE_HOME%%\cli.py" %%*

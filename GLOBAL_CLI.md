@@ -71,8 +71,10 @@ dripage tab close
 ```bash
 ~/.local/bin/dripage browser start
     ↓ 调用
-G:\code\agent-use\dripage\.venv\Scripts\python.exe G:\code\agent-use\dripage\cli.py browser start
+DRIPAGE_CLI=1 G:\code\agent-use\dripage\.venv\Scripts\python.exe G:\code\agent-use\dripage\cli.py browser start
 ```
+
+**注意**：`DRIPAGE_CLI=1` 环境变量会禁用 console 日志输出，使命令行输出更清晰。日志仍会保存到文件。
 
 ## 卸载
 
