@@ -138,13 +138,14 @@ def get_screenshot(full_page: bool = True, save: bool = True) -> str:
         return json.dumps({"status": "error", "message": error_msg}, ensure_ascii=False, indent=2)
 
 
-def analyze_vision(query: str, image_path: Optional[str] = None) -> str:
+def analyze_vision(query: str, image_path: Optional[str] = None, save_file: bool = False) -> str:
     """
     Analyze page screenshot using vision model.
 
     Args:
-        query: Question about the page/image.
+        query: Question about page/image.
         image_path: Path to image file. If None, takes current page screenshot.
+        save_file: Whether to save screenshot file (default False, faster with in-memory analysis).
 
     Returns:
         JSON string with analysis result.
@@ -162,22 +163,28 @@ def analyze_vision(query: str, image_path: Optional[str] = None) -> str:
         # Get image path or take screenshot
         if image_path:
             img_path = Path(image_path)
+            # When image_path is provided, always save=False (file already exists)
+            save_file = False
         else:
-            from tools import save_browser_screenshot
-            img_path = Path(save_browser_screenshot(prefix="vision", save=True))
+            # No need to save file if save_file=False (vision_analyze handles it)
+            img_path = None
 
         # Analyze with vision model
         result_dict = json.loads(vision_analyze.func(
             query=query,
-            image_path=str(img_path),
+            image_path=str(img_path) if img_path else None,
             tab_id=None,
-            runtime=None
+            runtime=None,
+            save_file=save_file
         ))
 
         # Add status field for CLI compatibility
         result_dict['status'] = 'success'
 
-        echo(f"✓ Vision analysis completed")
+        if save_file:
+            echo(f"✓ Vision analysis completed (saved to {result_dict.get('image_path')})")
+        else:
+            echo(f"✓ Vision analysis completed (in-memory)")
 
         return json.dumps(result_dict, ensure_ascii=False, indent=2)
 

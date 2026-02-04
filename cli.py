@@ -516,15 +516,18 @@ def page_screenshot():
 @page.command(name='vision')
 @click.option('--query', required=True, help='Question about the page')
 @click.option('--image', help='Path to image file. If not specified, takes screenshot')
-def page_vision(query: str, image: Optional[str] = None):
+@click.option('--save-file', is_flag=True, help='Save screenshot to file (default: in-memory analysis, faster)')
+def page_vision(query: str, image: Optional[str] = None, save_file: bool = False):
     """Analyze page screenshot with vision model.
 
     Examples:
         dripage page vision "What's the main heading?"
 
         dripage page vision --image /path/to/screenshot.png "Describe this image"
+
+        dripage page vision --save-file "Save screenshot and analyze"
     """
-    result = analyze_vision(query=query, image_path=image)
+    result = analyze_vision(query=query, image_path=image, save_file=save_file)
 
     data = json.loads(result)
     if data.get('status') == 'success':
@@ -532,8 +535,8 @@ def page_vision(query: str, image: Optional[str] = None):
         if 'image_size' in data:
             size = data['image_size']
             echo(f"  Image size: {size.get('width', 'N/A')}x{size.get('height', 'N/A')}")
-        if 'file' in data:
-            echo(f"  Source image: {data.get('file', 'N/A')}")
+        if 'image_path' in data and data.get('image_path') != 'in-memory':
+            echo(f"  Source image: {data.get('image_path', 'N/A')}")
 
         # Show analysis
         if 'analysis' in data:

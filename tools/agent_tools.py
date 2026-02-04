@@ -311,6 +311,7 @@ def vision_analyze(
     image_path: Optional[str] = None,
     tab_id: Optional[Union[int, str]] = None,
     runtime: ToolRuntime = None,
+    save_file: bool = False,
 ) -> str:
     """
     使用 GLM-4.1V 视觉模型分析图像（支持指定标签）
@@ -320,16 +321,18 @@ def vision_analyze(
         image_path: 图像文件路径（可选，如果不提供则截取指定标签的页面）
         tab_id: 标签标识符（None=当前标签，int=索引，str=tab_id）
         runtime: ToolRuntime 参数（自动注入，用于共享状态）
+        save_file: 是否保存截图文件（默认 False，直接从内存分析更快）
 
     Returns:
         视觉分析结果（JSON 字符串格式，包含分析结果、图片尺寸、文件路径、标签信息）
     """
     from tools.tab_manager import get_tab_object
+    import io
 
     config = get_config()
 
     if config.logging:
-        logger.info(f"视觉分析: query='{query}', image_path={image_path}, tab_id={tab_id}")
+        logger.info(f"视觉分析: query='{query}', image_path={image_path}, tab_id={tab_id}, save_file={save_file}")
 
     try:
         # 获取 API key
@@ -338,6 +341,7 @@ def vision_analyze(
             raise ValueError("ZAI_API_KEY not found in environment variables")
 
         # 确定图像来源和文件路径
+        img_path = None  # 初始化，避免无文件模式下未定义
         saved_file_path = None
         tab_metadata = {}
 
@@ -346,24 +350,46 @@ def vision_analyze(
             img_path = Path(image_path)
             if not img_path.exists():
                 raise ValueError(f"图像文件不存在: {image_path}")
+
+            # 读取并编码为 base64
+            with open(img_path, 'rb') as f:
+                image_base64 = base64.b64encode(f.read()).decode('utf-8')
+
+            # 获取图片尺寸
+            img = Image.open(img_path)
+            image_width, image_height = img.size
         else:
             # 截取指定标签的页面
-            saved_file_path = save_browser_screenshot(tab_id=tab_id, prefix="vision", save=True)
+            if config.logging:
+                logger.info(f"从标签页截图，save_file={save_file}")
 
-            if saved_file_path is None:
-                raise RuntimeError("截图失败")
+            if save_file:
+                # 保存文件模式（兼容原有行为）
+                saved_file_path = save_browser_screenshot(tab_id=tab_id, prefix="vision", save=True)
 
-            # 获取标签元数据
-            _, tab_metadata = get_tab_object(tab_id)
-            img_path = Path(saved_file_path)
+                if saved_file_path is None:
+                    raise RuntimeError("截图失败")
 
-        # 获取图片尺寸
-        img = Image.open(img_path)
-        image_width, image_height = img.size
+                img_path = Path(saved_file_path)
 
-        # 编码图像为 base64
-        with open(img_path, 'rb') as f:
-            image_base64 = base64.b64encode(f.read()).decode('utf-8')
+                # 读取并编码为 base64
+                with open(img_path, 'rb') as f:
+                    image_base64 = base64.b64encode(f.read()).decode('utf-8')
+
+                # 获取图片尺寸
+                img = Image.open(img_path)
+                image_width, image_height = img.size
+            else:
+                # 无文件模式（更快，直接从内存获取 base64）
+                tab, tab_metadata = get_tab_object(tab_id)
+
+                # 直接获取 base64 编码的截图
+                image_base64 = tab.get_screenshot(as_base64='png')
+
+                # 从 base64 解码获取图片尺寸
+                image_bytes = base64.b64decode(image_base64)
+                img = Image.open(io.BytesIO(image_bytes))
+                image_width, image_height = img.size
 
         # 使用 ChatOpenAI 初始化视觉模型（OpenAI 兼容接口）
         vision_llm = ChatOpenAI(
@@ -387,19 +413,19 @@ def vision_analyze(
 
         # 更新 runtime.state 中的图像信息
         if runtime is not None:
-            runtime.state["image_path"] = str(img_path)
+            runtime.state["image_path"] = str(img_path) if img_path else None
             runtime.state["image_width"] = image_width
             runtime.state["image_height"] = image_height
             runtime.state["vision_analysis"] = result
 
             if config.logging:
-                logger.info(f"已更新 runtime.state: image_path={img_path}, size={image_width}x{image_height}")
+                logger.info(f"已更新 runtime.state: image_path={img_path if img_path else 'in-memory'}, size={image_width}x{image_height}")
 
         # 返回分析结果（包含标签信息）
         result_dict = {
             "analysis": result,
             "image_size": {"width": image_width, "height": image_height},
-            "image_path": str(img_path),
+            "image_path": str(img_path) if img_path else "in-memory",
             "tab": tab_metadata
         }
 

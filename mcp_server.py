@@ -268,14 +268,15 @@ def browser_get_current_page_tool(tab_id: Optional[Union[int, str]] = None) -> s
 
 
 @mcp.tool
-def browser_screenshot_tool(tab_id: Optional[Union[int, str]] = None) -> str:
+def browser_screenshot_tool(tab_id: Optional[Union[int, str]] = None, save_file: bool = False) -> str:
     """Take a screenshot of the specified tab.
 
     Args:
         tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
+        save_file: Whether to save screenshot to file (default False, returns base64 for faster use)
 
     Returns:
-        str: File path to saved screenshot
+        str: File path to saved screenshot (if save_file=True) or base64 data (if save_file=False)
     """
     try:
         from tools.tab_manager import get_tab_object
@@ -283,22 +284,33 @@ def browser_screenshot_tool(tab_id: Optional[Union[int, str]] = None) -> str:
         # Get specified tab object
         tab, metadata = get_tab_object(tab_id)
 
-        # Screenshot full page
-        screenshot_data = tab.get_screenshot(as_bytes=True)
+        if save_file:
+            # Screenshot and save to file
+            screenshot_data = tab.get_screenshot(as_bytes=True)
 
-        # Generate filename with timestamp
-        timestamp = generate_timestamp()
-        filename = f"screenshot_{timestamp}.png"
+            # Generate filename with timestamp
+            timestamp = generate_timestamp()
+            filename = f"screenshot_{timestamp}.png"
 
-        # Save to output directory
-        filepath = OUTPUT_DIR / filename
-        with open(filepath, 'wb') as f:
-            f.write(screenshot_data)
+            # Save to output directory
+            filepath = OUTPUT_DIR / filename
+            with open(filepath, 'wb') as f:
+                f.write(screenshot_data)
 
-        result = {
-            "file": str(filepath),
-            "tab": metadata
-        }
+            result = {
+                "file": str(filepath),
+                "format": "file",
+                "tab": metadata
+            }
+        else:
+            # Screenshot and return base64 (faster, no file I/O)
+            screenshot_base64 = tab.get_screenshot(as_base64='png')
+
+            result = {
+                "data": screenshot_base64,
+                "format": "base64",
+                "tab": metadata
+            }
 
         return json.dumps(result, ensure_ascii=False, indent=2)
 
