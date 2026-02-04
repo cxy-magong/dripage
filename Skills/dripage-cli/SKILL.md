@@ -54,9 +54,19 @@ dripage tab close                             # Close current tab
 dripage page screenshot      # Take screenshot of current page
 dripage page get            # Get page content as Markdown
 dripage page vision         # Analyze page with vision model
+
+# Vision options:
+#   --query TEXT          Question about the page (required)
+#   --image PATH          Path to image file (optional, uses screenshot if not provided)
+#   --save-file          Save screenshot to file (default: in-memory analysis, faster)
 ```
 
 **Note**: `page get` requires `output/data/page_data` directory to exist
+
+**Vision Analysis Tips**:
+- Default mode uses in-memory analysis (no file I/O, faster)
+- Use `--save-file` flag to save screenshot for debugging
+- Example: `dripage page vision --query "Describe this page" --save-file`
 
 ### Element Interaction
 
@@ -64,6 +74,31 @@ dripage page vision         # Analyze page with vision model
 dripage action click <x> <y>        # Click at coordinates
 dripage action input <x> <y> <text>  # Input text at coordinates
 dripage action scroll [down|up]       # Scroll page
+```
+
+### Network Packet Capture
+
+```bash
+dripage capture start    # Start background packet capture with filters
+dripage capture stop     # Stop packet capture and save remaining packets
+dripage capture query    # Query captured packets from files
+
+# Start capture options:
+#   --mimeType TEXT       Filter by MIME type (e.g., application/json)
+#   --url-include TEXT   Filter by URL pattern
+#   --save-path TEXT     Custom save path
+```
+
+### Configuration Management
+
+```bash
+dripage config list       # List all available sessions
+dripage config set [name] # Set or create a session configuration
+dripage config use        # Switch to a session configuration
+dripage config reset      # Reset to default configuration
+
+# Set options:
+#   --set-default         Set current config as default
 ```
 
 ---
@@ -87,6 +122,9 @@ dripage page screenshot
 
 # 5. (Optional) Get page content
 dripage page get
+
+# 6. (Optional) Analyze with vision model
+dripage page vision --query "What's on this page?"
 ```
 
 ### Get Page Content
@@ -94,6 +132,41 @@ dripage page get
 ```bash
 dripage tab new --url https://example.com
 dripage page get
+```
+
+### Capture Network Traffic
+
+```bash
+# 1. Start browser
+dripage browser start
+
+# 2. Open target page
+dripage tab new --url https://example.com
+
+# 3. Start network capture (filter JSON responses)
+dripage capture start --mimeType application/json
+
+# 4. Interact with page to trigger network requests
+# (e.g., click buttons, navigate)
+
+# 5. Stop capture
+dripage capture stop
+
+# 6. Query captured packets
+dripage capture query
+```
+
+### Vision Analysis Workflow
+
+```bash
+# Fast mode (default, no file I/O)
+dripage page vision --query "Find the submit button"
+
+# With saved screenshot for debugging
+dripage page vision --query "Describe this page" --save-file
+
+# Analyze existing image file
+dripage page vision --query "What's in this image?" --image /path/to/screenshot.png
 ```
 
 ---
@@ -121,10 +194,15 @@ dripage action --help        # Show action subcommand help
 
 ## Output Paths
 
-- **Screenshots**: `G:\code\agent-use\dripage\output\data\screenshot_*.png`
-- **Page Data**: `G:\code\agent-use\dripage\output\data\page_data\`
-- **Config Directory**: `G:\code\agent-use\dripage\config\`
+- **Screenshots**: `output/data/screenshot_*.png`
+- **Vision Screenshots** (when --save-file): `output/data/vision_*.png`
+- **Page Data**: `output/data/page_data/`
+- **Network Capture**: `output/network_capture/`
+- **Config Directory**: `config/`
 - **Browser Config**: `config/browsers.yaml`
+- **Log Directory**: `output/log/`
+
+**Note**: Paths are relative to dripage project root directory.
 
 ---
 
@@ -137,4 +215,6 @@ dripage action --help        # Show action subcommand help
 | Open webpage | `dripage tab new --url <URL>` |
 | Screenshot | `dripage page screenshot` |
 | Get content | `dripage page get` |
+| Vision analyze | `dripage page vision --query "<text>"` |
+| Capture network | `dripage capture start --mimeType application/json` |
 | Get help | `dripage --help` |
