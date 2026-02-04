@@ -119,6 +119,40 @@ vision:
 
 For detailed configuration and MCP tools documentation, see [config/README.md](config/README.md).
 
+## dripage-cli Agent Skills
+
+### Installation for OpenCode
+
+Install the dripage-cli Agent Skill for direct command-line usage:
+
+```bash
+# Copy skill to OpenCode skills directory
+cp -r Skills/dripage-cli "C:/Users/mg/.config/opencode/skills/"
+```
+
+### Usage in Claude Code
+
+Once installed, use the skill when asking about:
+- "dripage command"
+- "browser automation via CLI"
+- "command-line browser testing"
+- "verify page with dripage"
+
+### Key Commands
+
+| Task | Command |
+|------|---------|
+| Check status | `dripage browser status` |
+| Start browser | `dripage browser start` |
+| Open webpage | `dripage tab new --url <URL>` |
+| Screenshot | `dripage page screenshot` |
+| Get content | `dripage page get` |
+| Get help | `dripage --help` |
+
+For complete reference, see [Skills/dripage-cli/SKILL.md](./Skills/dripage-cli/SKILL.md).
+
+---
+
 ## MCP Tools
 
 ### Core Tools
