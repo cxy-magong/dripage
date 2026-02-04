@@ -537,7 +537,7 @@ def page_vision(query: str, image: Optional[str] = None):
 
         # Show analysis
         if 'analysis' in data:
-            echo(f"  Analysis: {data.get('analysis', 'N/A')[:100]}...")
+            echo(f"  Analysis: {data.get('analysis', 'N/A')}")
     else:
         echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
 
