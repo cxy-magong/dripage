@@ -19,13 +19,13 @@ from cli_config import get_current_config, ConfigManager
 from cli_browser import get_page_object
 
 
-def get_markdown(url: Optional[str] = None, save: bool = True) -> str:
+def get_markdown(url: Optional[str] = None, save: bool = False) -> str:
     """
     Get page content as markdown.
 
     Args:
         url: Page URL to navigate to. If None, gets current page.
-        save: Whether to save to file. If False, returns markdown text only.
+        save: Whether to save to file. Default False (return content only).
 
     Returns:
         JSON string with markdown content and file path.
@@ -72,8 +72,6 @@ def get_markdown(url: Optional[str] = None, save: bool = True) -> str:
 
                 with open(filepath, 'w', encoding='utf-8') as f:
                     f.write(markdown_text)
-
-                echo(f"✓ Saved markdown to: {filepath}")
 
                 return json.dumps({
                     "status": "success",

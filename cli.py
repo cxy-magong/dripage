@@ -460,8 +460,8 @@ def capture_query(limit: int, filter: Optional[str] = None):
 
 @cli.command(name='get')
 @click.argument('url', required=False)
-@click.option('--no-save', is_flag=True, help='Do not save to file, return content only')
-def page_get(url: Optional[str] = None, no_save: bool = False):
+@click.option('--save', is_flag=True, help='Save to file')
+def page_get(url: Optional[str] = None, save: bool = False):
     """Get page content as markdown.
 
     Examples:
@@ -469,22 +469,39 @@ def page_get(url: Optional[str] = None, no_save: bool = False):
 
         dripage get
 
-        dripage get --no-save
+        dripage get --save
     """
-    result = get_markdown(url=url, save=not no_save)
+    result = get_markdown(url=url, save=save)
 
     data = json.loads(result)
     if data.get('status') == 'success':
         echo(f"✓ Page retrieved successfully")
         echo(f"  URL: {data.get('url', 'N/A')}")
         echo(f"  Title: {data.get('title', 'N/A')}")
-        if no_save:
-            # Show content preview
-            content = data.get('content', '')
-            preview = content[:200] + '...' if len(content) > 200 else content
-            echo(f"  Content: {preview}")
+
+        # Get content
+        content = data.get('content', '')
+
+        # Show content with truncation
+        if len(content) > 3000:
+            # Show first 3000 chars
+            echo()
+            echo(content[:3000])
+            echo()
+            echo(f"⚠️  Content truncated ({len(content)} chars > 3000 limit)")
+            if save and 'file' in data:
+                # Get absolute path
+                filepath = Path(data.get('file', 'N/A')).resolve()
+                echo(f"   Full content saved to: {filepath}")
         else:
-            echo(f"  Saved to: {data.get('file', 'N/A')}")
+            # Show full content
+            echo()
+            echo(content)
+
+        if save and 'file' in data:
+            # Get absolute path
+            filepath = Path(data.get('file', 'N/A')).resolve()
+            echo(f"✓ Saved to: {filepath}")
     else:
         echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
 
