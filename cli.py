@@ -458,24 +458,18 @@ def capture_query(limit: int, filter: Optional[str] = None):
 
 # ==================== Page Commands ====================
 
-@cli.group()
-def page():
-    """Page operation commands."""
-    pass
-
-
-@page.command(name='get')
-@click.option('--url', help='Page URL to navigate to. If not specified, gets current page')
+@cli.command(name='get')
+@click.argument('url', required=False)
 @click.option('--no-save', is_flag=True, help='Do not save to file, return content only')
 def page_get(url: Optional[str] = None, no_save: bool = False):
     """Get page content as markdown.
 
     Examples:
-        dripage page get
+        dripage get http://localhost:3000/sign-up
 
-        dripage page get https://example.com
+        dripage get
 
-        dripage page get --no-save
+        dripage get --no-save
     """
     result = get_markdown(url=url, save=not no_save)
 
@@ -495,12 +489,12 @@ def page_get(url: Optional[str] = None, no_save: bool = False):
         echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
 
 
-@page.command(name='screenshot')
+@cli.command(name='screenshot')
 def page_screenshot():
     """Take a screenshot of current page.
 
     Example:
-        dripage page screenshot
+        dripage screenshot
     """
     result = get_screenshot(full_page=True, save=True)
 
@@ -513,7 +507,7 @@ def page_screenshot():
         echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
 
 
-@page.command(name='vision')
+@cli.command(name='vision')
 @click.option('--query', required=True, help='Question about the page')
 @click.option('--image', help='Path to image file. If not specified, takes screenshot')
 @click.option('--save-file', is_flag=True, help='Save screenshot to file (default: in-memory analysis, faster)')
@@ -521,11 +515,11 @@ def page_vision(query: str, image: Optional[str] = None, save_file: bool = False
     """Analyze page screenshot with vision model.
 
     Examples:
-        dripage page vision "What's the main heading?"
+        dripage vision "What's the main heading?"
 
-        dripage page vision --image /path/to/screenshot.png "Describe this image"
+        dripage vision --image /path/to/screenshot.png "Describe this image"
 
-        dripage page vision --save-file "Save screenshot and analyze"
+        dripage vision --save-file "Save screenshot and analyze"
     """
     result = analyze_vision(query=query, image_path=image, save_file=save_file)
 

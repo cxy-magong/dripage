@@ -145,8 +145,9 @@ Once installed, use the skill when asking about:
 | Check status | `dripage browser status` |
 | Start browser | `dripage browser start` |
 | Open webpage | `dripage tab new --url <URL>` |
-| Screenshot | `dripage page screenshot` |
-| Get content | `dripage page get` |
+| Screenshot | `dripage screenshot` |
+| Get content | `dripage get [URL]` |
+| Vision analyze | `dripage vision --query "<question>"` |
 | Get help | `dripage --help` |
 
 For complete reference, see [Skills/dripage-cli/SKILL.md](./Skills/dripage-cli/SKILL.md).

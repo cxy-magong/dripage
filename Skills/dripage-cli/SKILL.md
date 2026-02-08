@@ -1,208 +1,203 @@
 ---
 name: dripage-cli
-description: Browser automation CLI tool - control browsers, capture pages, interact with elements, and test frontend via command line.
+description: Browser automation CLI for frontend testing, screenshot capture, and visual verification
+trigger-phrases:
+  - dripage
+  - screenshot
+  - 视觉查看
+  - 视觉分析
+  - 验证前端
+  - frontend verification
+  - browser automation
+  - 页面测试
+  - page test
+allowed-tools:
+  - Bash(dripage:*)
 ---
 
-# Dripage CLI Browser Automation
+# Dripage CLI
 
-Command-line interface for browser automation, page testing, and visual verification.
+Browser automation via command line for testing, screenshots, and visual verification.
 
-## When to Use
+## Tool Restrictions (MUST OBEY)
 
-- Need to control browser from command line
-- Automate web page testing
-- Take screenshots for frontend verification
-- Extract page content in Markdown format
-- Test local development servers
+**ONLY tools with `dripage:*` namespace are allowed.**
+
+### Allowed Tools
+- ✅ `Bash(dripage:*)` - All dripage CLI commands
+
+### Forbidden Tools
+- ❌ `Bash` (non-dripage namespace) - Generic bash commands
+- ❌ `read` tool - Never use read for visual analysis
+- ❌ `look_at` tool - Never use look_at for visual analysis
+- ❌ Any other image viewing tools - Never use after vision analysis
+
+**Why**: This skill provides complete browser automation capabilities through dripage CLI. Other tools are redundant and should not be used.
+
+---
+
+## Trigger When
+- User mentions "dripage", "screenshot", "视觉查看"
+- Needs to verify frontend UI or take screenshots
+- Wants to analyze page content visually
+- Testing local development servers
+
+---
+
+## Mandatory Rules (NEVER VIOLATE)
+
+### Rule 1: NEVER Use `read` or `look_at` for Image Files
+
+When analyzing screenshots or visual content:
+- ✅ **MUST use**: `dripage vision --query "<question>"`
+- ❌ **NEVER use**: `read <screenshot-path>`
+- ❌ **NEVER use**: `look_at <image-path>`
+
+**Reason**: `vision` already provides structured visual analysis. Using `read` or `look_at` is redundant and wastes tokens.
+
+**Violation Example**:
+```bash
+# ❌ WRONG - Do NOT do this
+dripage vision --query "Analyze page"
+read output/data/screenshot_xxx.png
+
+# ✅ CORRECT - This is the ONLY step needed
+dripage vision --query "Analyze page"
+```
+
+### Rule 2: MUST Use Single-Command Flow for Visual Analysis
+
+For visual verification:
+- ✅ **MUST use**: `dripage vision --query "<question>"` (single command)
+- ❌ **NEVER**: `dripage screenshot` + `dripage vision --image <path>` (two commands)
+
+**Reason**: Default mode of `vision` automatically captures and analyzes. Separate screenshot command is redundant and creates unnecessary file I/O.
+
+**Violation Example**:
+```bash
+# ❌ WRONG - Do NOT do this
+dripage screenshot
+dripage vision --image output/data/screenshot_xxx.png --query "Describe page"
+
+# ✅ CORRECT - Single command
+dripage vision --query "Describe page"
+```
+
+### Rule 3: NEVER Combine Visual Tools
+
+Once `vision` is complete:
+- ✅ **DO**: Report analysis result directly to user
+- ❌ **DO NOT**: Call `read`, `look_at`, or any other visual tool
+- ❌ **DO NOT**: Use `dripage screenshot` after vision
+
+**Reason**: Vision result already contains complete visual information. Additional tools provide no value and consume unnecessary tokens.
+
+**Violation Example**:
+```bash
+# ❌ WRONG - Redundant tool calls
+dripage vision --query "Verify layout"
+read output/data/vision_xxx.png  # Redundant
+look_at output/data/vision_xxx.png  # Redundant
+
+# ✅ CORRECT - Stop at vision result
+dripage vision --query "Verify layout"
+# Done. Report result to user.
+```
+
+### Rule 4: NEVER Use Generic Bash for Dripage Tasks
+
+For any dripage-related operation:
+- ✅ **MUST use**: `Bash(dripage:*)` namespace
+- ❌ **NEVER use**: Generic `Bash` tool
+
+**Why**: `allowed-tools` field enforces dripage namespace. Generic bash bypasses this restriction.
 
 ---
 
 ## Core Commands
 
-### Browser Management
-
+### Browser & Tab
 ```bash
-dripage browser status      # Check browser status
-dripage browser start        # Start browser instance
-dripage browser stop         # Stop browser
-
-# Options:
-#   --name TEXT          Browser name from config/browsers.yaml
-#   --address TEXT       Browser address (e.g., 127.0.0.1:19222)
-#   --browser-path TEXT  Path to browser executable
-#   --user-data-dir TEXT Path to user data directory
-```
-
-**Common Mistake**: `browser start` does NOT accept `--url` option
-
-### Tab Management
-
-```bash
-dripage tab new --url http://example.com    # Open new tab with URL
-dripage tab list                              # List all tabs
-dripage tab close                             # Close current tab
-
-# Options:
-#   --url TEXT  URL to open
-```
-
-**Common Mistake**: Must use `--url` flag, cannot pass URL as positional argument
-
-### Page Operations
-
-```bash
-dripage page screenshot      # Take screenshot of current page
-dripage page get            # Get page content as Markdown
-dripage page vision         # Analyze page with vision model
-
-# Vision options:
-#   --query TEXT          Question about the page (required)
-#   --image PATH          Path to image file (optional, uses screenshot if not provided)
-#   --save-file          Save screenshot to file (default: in-memory analysis, faster)
-```
-
-**Note**: `page get` requires `output/data/page_data` directory to exist
-
-**Vision Analysis Tips**:
-- Default mode uses in-memory analysis (no file I/O, faster)
-- Use `--save-file` flag to save screenshot for debugging
-- Example: `dripage page vision --query "Describe this page" --save-file`
-
-### Element Interaction
-
-```bash
-dripage action click <x> <y>        # Click at coordinates
-dripage action input <x> <y> <text>  # Input text at coordinates
-dripage action scroll [down|up]       # Scroll page
-```
-
-### Network Packet Capture
-
-```bash
-dripage capture start    # Start background packet capture with filters
-dripage capture stop     # Stop packet capture and save remaining packets
-dripage capture query    # Query captured packets from files
-
-# Start capture options:
-#   --mimeType TEXT       Filter by MIME type (e.g., application/json)
-#   --url-include TEXT   Filter by URL pattern
-#   --save-path TEXT     Custom save path
-```
-
-### Configuration Management
-
-```bash
-dripage config list       # List all available sessions
-dripage config set [name] # Set or create a session configuration
-dripage config use        # Switch to a session configuration
-dripage config reset      # Reset to default configuration
-
-# Set options:
-#   --set-default         Set current config as default
-```
-
----
-
-## Typical Workflows
-
-### Verify Local Development Server
-
-```bash
-# 1. Check browser status
+dripage browser start
+dripage browser stop
 dripage browser status
 
-# 2. Start browser if not running
-dripage browser start
-
-# 3. Open new tab and navigate to URL
-dripage tab new --url http://localhost:3000
-
-# 4. Take screenshot for verification
-dripage page screenshot
-
-# 5. (Optional) Get page content
-dripage page get
-
-# 6. (Optional) Analyze with vision model
-dripage page vision --query "What's on this page?"
+dripage tab new --url <URL>
+dripage tab list
+dripage tab close
 ```
 
-### Get Page Content
+**Important**: `browser start` does NOT accept `--url`. Use `tab new` instead.
 
+### Page Operations
 ```bash
-dripage tab new --url https://example.com
-dripage page get
+dripage screenshot              # Capture screenshot
+dripage get [URL]             # Get page content (Markdown)
+dripage vision --query "问题"  # ★ Analyze with vision model
 ```
 
-### Capture Network Traffic
+### Vision Analysis (Priority)
+**Use `vision` for visual analysis instead of reading images directly.**
 
 ```bash
-# 1. Start browser
-dripage browser start
+# Fast mode (default, in-memory) - PREFERRED
+dripage vision --query "描述这个页面的布局"
 
-# 2. Open target page
-dripage tab new --url https://example.com
+# With saved screenshot for debugging
+dripage vision --query "检查布局是否正确" --save-file
 
-# 3. Start network capture (filter JSON responses)
+# Analyze existing image (ONLY for debugging/retrospective analysis)
+dripage vision --query "这个页面有什么问题？" --image /path/to/image.png
+```
+
+**STOP HERE**: After `vision`, do NOT call any other visual tools.
+
+### Interaction & Network
+```bash
+dripage action click <x> <y>
+dripage action input <x> <y> <text>
+dripage action scroll [down|up]
+
 dripage capture start --mimeType application/json
-
-# 4. Interact with page to trigger network requests
-# (e.g., click buttons, navigate)
-
-# 5. Stop capture
 dripage capture stop
-
-# 6. Query captured packets
 dripage capture query
 ```
 
-### Vision Analysis Workflow
+---
+
+## Recommended Workflow: Verify Frontend
 
 ```bash
-# Fast mode (default, no file I/O)
-dripage page vision --query "Find the submit button"
+# 1. Start browser
+dripage browser status
+dripage browser start
 
-# With saved screenshot for debugging
-dripage page vision --query "Describe this page" --save-file
+# 2. Open page
+dripage tab new --url http://localhost:3000
 
-# Analyze existing image file
-dripage page vision --query "What's in this image?" --image /path/to/screenshot.png
+# 3. ★ Analyze visually (SINGLE command, STOP here)
+dripage vision --query "验证页面布局和内容"
+
+# ❌ DO NOT proceed with any of these:
+# - read output/data/screenshot_xxx.png
+# - look_at output/data/vision_xxx.png
+# - dripage screenshot
+# - Any other visual tool
+
+# ✅ INSTEAD: Report vision analysis result to user
 ```
 
 ---
 
-## Common Errors & Solutions
+## Common Errors
 
-| Error Command | Correct Command | Reason |
-|--------------|----------------|--------|
-| `dripage browser start --url http://example.com` | `dripage browser start` + `dripage tab new --url http://example.com` | `start` doesn't support `--url` |
-| `dripage tab new http://example.com` | `dripage tab new --url http://example.com` | Must use `--url` parameter |
-
----
-
-## Help Commands
-
-```bash
-dripage --help              # Show all commands
-dripage browser --help       # Show browser subcommand help
-dripage tab --help           # Show tab subcommand help
-dripage page --help          # Show page subcommand help
-dripage action --help        # Show action subcommand help
-```
-
----
-
-## Output Paths
-
-- **Screenshots**: `output/data/screenshot_*.png`
-- **Vision Screenshots** (when --save-file): `output/data/vision_*.png`
-- **Page Data**: `output/data/page_data/`
-- **Network Capture**: `output/network_capture/`
-- **Config Directory**: `config/`
-- **Browser Config**: `config/browsers.yaml`
-- **Log Directory**: `output/log/`
-
-**Note**: Paths are relative to dripage project root directory.
+| Wrong | Right | Why |
+|-------|-------|-----|
+| `dripage browser start --url http://...` | `dripage browser start` + `dripage tab new --url http://...` | `start` doesn't support `--url` |
+| `dripage tab new http://...` | `dripage tab new --url http://...` | Must use `--url` flag |
+| `read screenshot.png` | `dripage vision --query "问题"` | Use vision analysis, not read tool |
+| `dripage screenshot` + `dripage vision --image screenshot.png` | `dripage vision --query "问题"` | Vision automatically captures, redundant screenshot |
+| `look_at screenshot.png` | `dripage vision --query "问题"` | Vision already analyzed, look_at is redundant |
 
 ---
 
@@ -210,11 +205,18 @@ dripage action --help        # Show action subcommand help
 
 | Task | Command |
 |------|---------|
-| Check status | `dripage browser status` |
 | Start browser | `dripage browser start` |
-| Open webpage | `dripage tab new --url <URL>` |
-| Screenshot | `dripage page screenshot` |
-| Get content | `dripage page get` |
-| Vision analyze | `dripage page vision --query "<text>"` |
-| Capture network | `dripage capture start --mimeType application/json` |
-| Get help | `dripage --help` |
+| Open page | `dripage tab new --url <URL>` |
+| Screenshot | `dripage screenshot` |
+| Vision analyze | `dripage vision --query "<问题>"` |
+| Get content | `dripage get [URL]` |
+| Help | `dripage --help` |
+
+---
+
+## Output Paths
+
+- **Screenshots**: `output/data/screenshot_*.png`
+- **Vision screenshots** (with `--save-file`): `output/data/vision_*.png`
+- **Page data**: `output/data/page_data/`
+- **Network capture**: `output/network_capture/`

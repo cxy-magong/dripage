@@ -47,10 +47,10 @@ dripage capture query --limit 50
 dripage capture query --filter ".status_code == 200"
 
 # Page operations
-dripage page get https://example.com
-dripage page screenshot
-dripage page vision "What's on this page?"
-dripage page vision --image /path/to/screenshot.png
+dripage get https://example.com
+dripage screenshot
+dripage vision "What's on this page?"
+dripage vision --image /path/to/screenshot.png
 
 # Tab management
 dripage tab list
@@ -162,16 +162,16 @@ dripage browser start
 
 | Command | Description |
 |----------|-------------|
-| `dripage page get` | Get page content as markdown |
-| `dripage page screenshot` | Take screenshot of current page |
-| `dripage page vision` | Analyze page with vision model |
+| `dripage get [URL]` | Get page content as markdown |
+| `dripage screenshot` | Take screenshot of current page |
+| `dripage vision --query` | Analyze page with vision model |
 
 **Page Options:**
-- `--url` - Page URL to navigate to
+- `[URL]` - Page URL to navigate to (optional, positional)
 - `--no-save` - Return content only, don't save to file
 
 **Vision Options:**
-- `--query` - Question about the page/image
+- `--query` - Question about page/image
 - `--image` - Path to image file (if not provided, takes screenshot)
 
 ### Action Commands
@@ -242,7 +242,7 @@ dripage capture query --limit 50 --filter ".url | contains(\"baidu\")"
 
 ```bash
 # Get page as markdown
-dripage page get https://example.com
+dripage get https://example.com
 
 # Expected output:
 {
@@ -258,7 +258,7 @@ dripage page get https://example.com
 
 ```bash
 # Analyze current page
-dripage page vision "Describe the main content of this page"
+dripage vision "Describe the main content of this page"
 
 # Expected output includes:
 - Image size (width x height)
@@ -347,7 +347,7 @@ dripage browser start
 dripage capture start --content-type application/json
 
 # 4. Navigate and test
-dripage page get https://example.com
+dripage get https://example.com
 
 # 5. Check captured packets
 dripage capture query --limit 10
@@ -360,16 +360,16 @@ dripage capture stop
 
 ```bash
 # 1. Navigate to page
-dripage page get https://www.baidu.com
+dripage get https://www.baidu.com
 
 # 2. Take screenshot
-dripage page screenshot
+dripage screenshot
 
 # 3. Analyze with vision
-dripage page vision "What is the main content of this page?"
+dripage vision "What is the main content of this page?"
 
 # 4. Get detailed analysis
-dripage page vision "Read all text in the image"
+dripage vision "Read all text in the image"
 
 # 5. Switch between filters
 dripage capture query --filter ".content_type | contains(\"application/json\")"

@@ -35,9 +35,9 @@ dripage capture stop
 dripage capture query
 
 # 页面操作
-dripage page get https://example.com
-dripage page screenshot
-dripage page vision "这是什么页面？"
+dripage get https://example.com
+dripage screenshot
+dripage vision "这是什么页面？"
 
 # 元素交互
 dripage action click 100 200
