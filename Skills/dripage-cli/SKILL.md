@@ -49,11 +49,12 @@ Browser automation via command line for testing, screenshots, and visual verific
 ### Rule 1: NEVER Use `read` or `look_at` for Image Files
 
 When analyzing screenshots or visual content:
-- ✅ **MUST use**: `dripage vision --query "<question>"`
+- ✅ **MUST use**: `dripage vision --query "<question>"` (in-memory)
+- ✅ **MUST use**: `dripage locate --query "<element>"` (in-memory)
 - ❌ **NEVER use**: `read <screenshot-path>`
 - ❌ **NEVER use**: `look_at <image-path>`
 
-**Reason**: `vision` already provides structured visual analysis. Using `read` or `look_at` is redundant and wastes tokens.
+**Reason**: `vision` and `locate` already provide structured visual analysis. Using `read` or `look_at` is redundant and wastes tokens.
 
 **Violation Example**:
 ```bash
@@ -68,10 +69,12 @@ dripage vision --query "Analyze page"
 ### Rule 2: MUST Use Single-Command Flow for Visual Analysis
 
 For visual verification:
-- ✅ **MUST use**: `dripage vision --query "<question>"` (single command)
+- ✅ **MUST use**: `dripage vision --query "<question>"` (single command, in-memory)
+- ✅ **MUST use**: `dripage locate --query "<element>"` (single command, in-memory)
 - ❌ **NEVER**: `dripage screenshot` + `dripage vision --image <path>` (two commands)
+- ❌ **NEVER**: `dripage screenshot` + `dripage locate --query "<element>"` (two commands)
 
-**Reason**: Default mode of `vision` automatically captures and analyzes. Separate screenshot command is redundant and creates unnecessary file I/O.
+**Reason**: Default mode of `vision` and `locate` automatically captures and analyzes in-memory. Separate screenshot command is redundant and creates unnecessary file I/O.
 
 **Violation Example**:
 ```bash
@@ -85,12 +88,12 @@ dripage vision --query "Describe page"
 
 ### Rule 3: NEVER Combine Visual Tools
 
-Once `vision` is complete:
-- ✅ **DO**: Report analysis result directly to user
+Once `vision` or `locate` is complete:
+- ✅ **DO**: Report analysis/locate result directly to user
 - ❌ **DO NOT**: Call `read`, `look_at`, or any other visual tool
-- ❌ **DO NOT**: Use `dripage screenshot` after vision
+- ❌ **DO NOT**: Use `dripage screenshot` after vision/locate
 
-**Reason**: Vision result already contains complete visual information. Additional tools provide no value and consume unnecessary tokens.
+**Reason**: Vision/locate result already contains complete visual information. Additional tools provide no value and consume unnecessary tokens.
 
 **Violation Example**:
 ```bash
@@ -132,12 +135,41 @@ dripage tab close
 ### Page Operations
 ```bash
 dripage screenshot              # Capture screenshot
-dripage get [URL]             # Get page content (Markdown)
+dripage get [URL] [--tab-id ID]  # Get page content (Markdown)
 dripage vision --query "问题"  # ★ Analyze with vision model
+dripage locate --query "搜索按钮" # ★ Locate element with vision
 ```
+
+**Important**:
+- `get` command auto-saves long content: If content > 3000 chars, automatically saves to file and shows absolute path
+- Use `--tab-id` to operate on specific tab (supports index or tab_id string)
+
+### Element Location (NEW)
+**Use `locate` to find elements on the page using visual analysis.**
+
+```bash
+# Locate element (uses latest tab, in-memory by default)
+dripage locate --query "搜索输入框"
+
+# Locate and click (uses latest tab)
+dripage locate --query "搜索按钮" --click
+
+# Locate in specific tab
+dripage tab locate "提交按钮" --tab-id 0
+
+# Locate and click in specific tab
+dripage tab locate "保存按钮" --tab-id 0 --click
+```
+
+**Important**: 
+- Default mode uses **in-memory screenshot** (no file I/O, faster)
+- `locate` automatically captures, analyzes, and converts coordinates
+- Use `--click` to automatically click the located element
 
 ### Vision Analysis (Priority)
 **Use `vision` for visual analysis instead of reading images directly.**
+
+**DEFAULT MODE = IN-MEMORY (no file save, faster)**
 
 ```bash
 # Fast mode (default, in-memory) - PREFERRED
@@ -150,7 +182,7 @@ dripage vision --query "检查布局是否正确" --save-file
 dripage vision --query "这个页面有什么问题？" --image /path/to/image.png
 ```
 
-**STOP HERE**: After `vision`, do NOT call any other visual tools.
+**STOP HERE**: After `vision` or `locate`, do NOT call any other visual tools.
 
 ### Interaction & Network
 ```bash
@@ -178,13 +210,42 @@ dripage tab new --url http://localhost:3000
 # 3. ★ Analyze visually (SINGLE command, STOP here)
 dripage vision --query "验证页面布局和内容"
 
+# OR locate elements (in-memory by default)
+dripage locate --query "搜索输入框"
+
+# OR locate and click
+dripage locate --query "搜索按钮" --click
+
 # ❌ DO NOT proceed with any of these:
 # - read output/data/screenshot_xxx.png
 # - look_at output/data/vision_xxx.png
 # - dripage screenshot
 # - Any other visual tool
 
-# ✅ INSTEAD: Report vision analysis result to user
+# ✅ INSTEAD: Report analysis result to user
+```
+
+## Recommended Workflow: Search and Click Elements
+
+```bash
+# 1. Start browser
+dripage browser status
+dripage browser start
+
+# 2. Open page
+dripage tab new --url https://www.baidu.com
+
+# 3. Locate search input
+dripage locate --query "搜索输入框"
+
+# 4. Input text (use coordinates from locate result)
+dripage action input <x> <y> --text "搜索内容"
+
+# 5. Locate and click search button
+dripage locate --query "搜索按钮" --click
+
+# 6. Get results
+dripage get
 ```
 
 ---
@@ -196,8 +257,9 @@ dripage vision --query "验证页面布局和内容"
 | `dripage browser start --url http://...` | `dripage browser start` + `dripage tab new --url http://...` | `start` doesn't support `--url` |
 | `dripage tab new http://...` | `dripage tab new --url http://...` | Must use `--url` flag |
 | `read screenshot.png` | `dripage vision --query "问题"` | Use vision analysis, not read tool |
-| `dripage screenshot` + `dripage vision --image screenshot.png` | `dripage vision --query "问题"` | Vision automatically captures, redundant screenshot |
-| `look_at screenshot.png` | `dripage vision --query "问题"` | Vision already analyzed, look_at is redundant |
+| `dripage screenshot` + `dripage vision --image screenshot.png` | `dripage vision --query "问题"` | Vision/locate automatically captures (in-memory), redundant |
+| `dripage screenshot` + `dripage locate --query "按钮"` | `dripage locate --query "按钮"` | Locate uses in-memory screenshot by default |
+| `look_at screenshot.png` | `dripage vision --query "问题"` | Vision/locate already analyzed, look_at is redundant |
 
 ---
 
@@ -209,6 +271,8 @@ dripage vision --query "验证页面布局和内容"
 | Open page | `dripage tab new --url <URL>` |
 | Screenshot | `dripage screenshot` |
 | Vision analyze | `dripage vision --query "<问题>"` |
+| Locate element | `dripage locate --query "<元素描述>"` |
+| Locate and click | `dripage locate --query "<元素描述>" --click` |
 | Get content | `dripage get [URL]` |
 | Help | `dripage --help` |
 

@@ -19,13 +19,14 @@ from cli_config import get_current_config, ConfigManager
 from cli_browser import get_page_object
 
 
-def get_markdown(url: Optional[str] = None, save: bool = False) -> str:
+def get_markdown(url: Optional[str] = None, save: bool = False, tab_id: Optional[str] = None) -> str:
     """
     Get page content as markdown.
 
     Args:
         url: Page URL to navigate to. If None, gets current page.
         save: Whether to save to file. Default False (return content only).
+        tab_id: Tab ID or index to operate on. If None, uses current page.
 
     Returns:
         JSON string with markdown content and file path.
@@ -36,7 +37,15 @@ def get_markdown(url: Optional[str] = None, save: bool = False) -> str:
         from tools.tab_manager import get_tab_object
 
         config = get_current_config()
-        page = get_page_object()
+        if tab_id is not None:
+            # Get specific tab
+            try:
+                tab_id_int = int(tab_id) if tab_id.isdigit() else tab_id
+                page, tab_info = get_tab_object(tab_id_int)
+            except Exception as e:
+                page = get_page_object()
+        else:
+            page = get_page_object()
 
         if url:
             page.get(url)

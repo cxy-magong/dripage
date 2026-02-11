@@ -48,6 +48,7 @@ dripage capture query --filter ".status_code == 200"
 
 # Page operations
 dripage get https://example.com
+dripage get --tab-id 0  # Get content from specific tab
 dripage screenshot
 dripage vision "What's on this page?"
 dripage vision --image /path/to/screenshot.png
@@ -168,7 +169,12 @@ dripage browser start
 
 **Page Options:**
 - `[URL]` - Page URL to navigate to (optional, positional)
-- `--no-save` - Return content only, don't save to file
+- `--tab-id` - Tab ID or index to operate on (optional, default: current page)
+- `--save` - Save to file
+
+**Auto-save Behavior:**
+- If content > 3000 characters, automatically saves to file and displays absolute path
+- Saved to: `output/data/page_data/page_<timestamp>.md`
 
 **Vision Options:**
 - `--query` - Question about page/image
@@ -195,9 +201,11 @@ dripage browser start
 | `dripage tab list` | List all browser tabs |
 | `dripage tab new` | Open a new tab |
 | `dripage tab close` | Close a tab |
+| `dripage tab locate` | Locate element on specific tab |
 
 **Tab Options:**
 - `--url` - URL to open in new tab
+- `--tab-id` - Tab ID or index to operate on
 
 ## Success Criteria Verification
 
@@ -245,13 +253,15 @@ dripage capture query --limit 50 --filter ".url | contains(\"baidu\")"
 dripage get https://example.com
 
 # Expected output:
-{
-  "status": "success",
-  "url": "https://example.com",
-  "title": "Example Domain",
-  "file": "output/data/page_data/page_20250203_120000.md",
-  "content": "# Example Domain\n..."
-}
+✓ Page retrieved successfully
+  URL: https://example.com
+  Title: Example Domain
+
+# Page content displayed here...
+
+# If content > 3000 chars, auto-saves and shows:
+⚠️  Content truncated (xxxx chars > 3000 limit)
+   Full content saved to: G:\code\agent-use\dripage\output\data\page_data\page_2025-02-11_21-50-06.md
 ```
 
 ### 4. Vision Analysis
