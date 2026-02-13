@@ -16,6 +16,15 @@ import click
 from dotenv import load_dotenv
 load_dotenv()
 
+# Fix Windows console encoding issue
+if sys.platform == 'win32':
+    import io
+    # Set UTF-8 encoding for stdout and stderr
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+    # Set environment variable for subprocess calls
+    os.environ['PYTHONIOENCODING'] = 'utf-8'
+
 import sys
 project_root = Path(__file__).resolve().parent
 if str(project_root) not in sys.path:
