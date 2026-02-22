@@ -11,3 +11,6 @@ wheels/
 output/
 *.log
 worktrees
+
+# Environment variables
+.env
