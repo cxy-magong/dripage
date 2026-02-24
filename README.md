@@ -43,35 +43,35 @@ ZAI_API_KEY="your_zhipuai_api_key_here"
 
 ```bash
 # 使用默认配置启动浏览器
-uv run dripage browser start
+uv run .\cli.py browser start
 
 # 或使用自定义配置启动
-uv run dripage browser start --address 127.0.0.1:19222
+uv run .\cli.py browser start --address 127.0.0.1:19222
 ```
 
 ### 4. 常用命令
 
 ```bash
 # 导航到网页
-uv run dripage tab new --url https://example.com
+uv run .\cli.py tab new --url https://example.com
 
 # 获取页面内容为 markdown
-uv run dripage get
+uv run .\cli.py get
 
 # 截取屏幕截图
-uv run dripage screenshot
+uv run .\cli.py screenshot
 
 # 使用视觉分析页面
-uv run dripage vision "这个页面上有什么？"
+uv run .\cli.py vision "这个页面上有什么？"
 
 # 在坐标处点击
-uv run dripage click 100 200
+uv run .\cli.py click 100 200
 
 # 列出标签页
-uv run dripage tab list
+uv run .\cli.py tab list
 
 # 获取帮助
-uv run dripage --help
+uv run .\cli.py --help
 ```
 
 ### 5. 与 AI 协作（OpenCode、Claude 等）
@@ -124,42 +124,42 @@ vision:
 
 ```bash
 # 检查浏览器状态
-uv run dripage browser status
+uv run .\cli.py browser status
 
 # 停止浏览器
-uv run dripage browser stop
+uv run .\cli.py browser stop
 
 # 获取 CDP URL
-uv run dripage browser cdp
+uv run .\cli.py browser cdp
 ```
 
 ### 标签页管理
 
 ```bash
 # 列出所有标签页
-uv run dripage tab list
+uv run .\cli.py tab list
 
 # 创建新标签页
-uv run dripage tab new --url https://example.com
+uv run .\cli.py tab new --url https://example.com
 
 # 切换到标签页（按索引）
-uv run dripage tab switch 0
+uv run .\cli.py tab switch 0
 
 # 关闭标签页
-uv run dripage tab close 0
+uv run .\cli.py tab close 0
 ```
 
 ### 网络数据包捕获
 
 ```bash
 # 开始捕获 JSON 响应
-uv run dripage capture start --content-type application/json
+uv run .\cli.py capture start --content-type application/json
 
 # 查询捕获的数据包
-uv run dripage capture query --limit 10
+uv run .\cli.py capture query --limit 10
 
 # 停止捕获
-uv run dripage capture stop
+uv run .\cli.py capture stop
 ```
 
 ---

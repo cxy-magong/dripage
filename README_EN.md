@@ -41,35 +41,35 @@ ZAI_API_KEY="your_zhipuai_api_key_here"
 
 ```bash
 # Start browser with default configuration
-uv run dripage browser start
+uv run .\cli.py browser start
 
 # Or start with custom configuration
-uv run dripage browser start --address 127.0.0.1:19222
+uv run .\cli.py browser start --address 127.0.0.1:19222
 ```
 
 ### 4. Common Commands
 
 ```bash
 # Navigate to a webpage
-uv run dripage tab new --url https://example.com
+uv run .\cli.py tab new --url https://example.com
 
 # Get page content as markdown
-uv run dripage get
+uv run .\cli.py get
 
 # Take a screenshot
-uv run dripage screenshot
+uv run .\cli.py screenshot
 
 # Analyze page with vision
-uv run dripage vision "What's on this page?"
+uv run .\cli.py vision "What's on this page?"
 
 # Click at coordinates
-uv run dripage click 100 200
+uv run .\cli.py click 100 200
 
 # List tabs
-uv run dripage tab list
+uv run .\cli.py tab list
 
 # Get help
-uv run dripage --help
+uv run .\cli.py --help
 ```
 
 ### 5. Use with AI (OpenCode, Claude, etc.)
@@ -122,42 +122,42 @@ For detailed MCP documentation, see [MCP_SERVER_README.md](MCP_SERVER_README.md)
 
 ```bash
 # Check browser status
-uv run dripage browser status
+uv run .\cli.py browser status
 
 # Stop browser
-uv run dripage browser stop
+uv run .\cli.py browser stop
 
 # Get CDP URL
-uv run dripage browser cdp
+uv run .\cli.py browser cdp
 ```
 
 ### Tab Management
 
 ```bash
 # List all tabs
-uv run dripage tab list
+uv run .\cli.py tab list
 
 # Create new tab
-uv run dripage tab new --url https://example.com
+uv run .\cli.py tab new --url https://example.com
 
 # Switch to tab (by index)
-uv run dripage tab switch 0
+uv run .\cli.py tab switch 0
 
 # Close tab
-uv run dripage tab close 0
+uv run .\cli.py tab close 0
 ```
 
 ### Network Packet Capture
 
 ```bash
 # Start capturing JSON responses
-uv run dripage capture start --content-type application/json
+uv run .\cli.py capture start --content-type application/json
 
 # Query captured packets
-uv run dripage capture query --limit 10
+uv run .\cli.py capture query --limit 10
 
 # Stop capturing
-uv run dripage capture stop
+uv run .\cli.py capture stop
 ```
 
 ---
