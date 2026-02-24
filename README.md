@@ -1,106 +1,108 @@
 # Dripage 🚀
 
-Browser automation tool with CLI support, MCP server integration, and vision analysis capabilities.
+[English](README_EN.md) | 简体中文
 
-## Features
+浏览器自动化工具，支持 CLI 命令行、MCP 服务器集成和视觉分析功能。
 
-- 🌐 **Browser Automation**: Navigate, interact with web pages via CLI
-- 📄 **Content Extraction**: Save pages as Markdown, HTML, images, or MHTML
-- 👁️ **Vision Analysis**: Analyze screenshots using GLM-4V vision model
-- 🔍 **Element Location**: Find and locate elements using vision + coordinates
-- 📡 **Network Packet Capture**: Background packet monitoring with filtering capabilities
-- 🔌 **MCP Server**: Model Context Protocol integration for AI agents
+## 特性
 
-## Quick Start (CLI)
+- 🌐 **浏览器自动化**：通过 CLI 导航和交互网页
+- 📄 **内容提取**：将网页保存为 Markdown、HTML、图片或 MHTML
+- 👁️ **视觉分析**：使用 GLM-4V 视觉模型分析截图
+- 🔍 **元素定位**：使用视觉和坐标查找定位元素
+- 📡 **网络数据包捕获**：后台网络监控，支持过滤功能
+- 🔌 **MCP 服务器**：支持 AI 代理的模型上下文协议集成
 
-### 1. Installation
+## 快速开始 (CLI)
+
+### 1. 安装
 
 ```bash
-# Clone repository
+# 克隆仓库
 git clone <repository-url>
 cd dripage
 
-# Install dependencies (requires Python 3.13+)
+# 安装依赖（需要 Python 3.13+）
 uv sync
 
-# Set up environment variables
+# 设置环境变量
 cp .env.example .env
-# Edit .env and fill in your API keys
+# 编辑 .env 并填入你的 API 密钥
 ```
 
-### 2. Configure Environment
+### 2. 配置环境
 
-Edit `.env` file and add required API keys:
+编辑 `.env` 文件并添加所需的 API 密钥：
 
 ```bash
-# Required for vision analysis
+# 视觉分析必需
 ZAI_API_KEY="your_zhipuai_api_key_here"
 ```
 
-### 3. Start Browser
+### 3. 启动浏览器
 
 ```bash
-# Start browser with default configuration
+# 使用默认配置启动浏览器
 uv run dripage browser start
 
-# Or start with custom configuration
+# 或使用自定义配置启动
 uv run dripage browser start --address 127.0.0.1:19222
 ```
 
-### 4. Common Commands
+### 4. 常用命令
 
 ```bash
-# Navigate to a webpage
+# 导航到网页
 uv run dripage tab new --url https://example.com
 
-# Get page content as markdown
+# 获取页面内容为 markdown
 uv run dripage get
 
-# Take a screenshot
+# 截取屏幕截图
 uv run dripage screenshot
 
-# Analyze page with vision
-uv run dripage vision "What's on this page?"
+# 使用视觉分析页面
+uv run dripage vision "这个页面上有什么？"
 
-# Click at coordinates
+# 在坐标处点击
 uv run dripage click 100 200
 
-# List tabs
+# 列出标签页
 uv run dripage tab list
 
-# Get help
+# 获取帮助
 uv run dripage --help
 ```
 
-### 5. Use with AI (OpenCode, Claude, etc.)
+### 5. 与 AI 协作（OpenCode、Claude 等）
 
-When working with AI agents, simply ask to use `dripage` CLI commands:
+使用 AI 代理时，可以直接要求使用 `dripage` CLI 命令：
 
-> "Navigate to https://github.com and take a screenshot"
+> "导航到 https://github.com 并截取屏幕截图"
 
-> "Find the search box and input 'test'"
+> "找到搜索框并输入 'test'"
 
-> "Get the page content as markdown"
+> "获取页面内容为 markdown"
 
-For complete CLI documentation, see [README_CLI.md](README_CLI.md).
+完整的 CLI 文档请参阅 [README_CLI.md](README_CLI.md)。
 
 ---
 
-## MCP Server (Optional)
+## MCP 服务器（可选）
 
-### Quick Start
+### 快速开始
 
 ```bash
-# Start MCP server (HTTP mode for testing)
+# 启动 MCP 服务器（HTTP 模式，用于测试）
 uv run mcp_server.py http
 
-# Or start MCP server (STDIO mode for production)
+# 或启动 MCP 服务器（STDIO 模式，用于生产）
 uv run mcp_server.py
 ```
 
-### Configuration
+### 配置
 
-Edit `config/mcp_config.yaml` to configure browser and vision settings:
+编辑 `config/mcp_config.yaml` 来配置浏览器和视觉设置：
 
 ```yaml
 browser:
@@ -112,73 +114,73 @@ vision:
   max_tokens: 1024
 ```
 
-For detailed MCP documentation, see [MCP_SERVER_README.md](MCP_SERVER_README.md).
+详细的 MCP 文档请参阅 [MCP_SERVER_README.md](MCP_SERVER_README.md)。
 
 ---
 
-## Advanced Configuration
+## 高级配置
 
-### Browser Management
+### 浏览器管理
 
 ```bash
-# Check browser status
+# 检查浏览器状态
 uv run dripage browser status
 
-# Stop browser
+# 停止浏览器
 uv run dripage browser stop
 
-# Get CDP URL
+# 获取 CDP URL
 uv run dripage browser cdp
 ```
 
-### Tab Management
+### 标签页管理
 
 ```bash
-# List all tabs
+# 列出所有标签页
 uv run dripage tab list
 
-# Create new tab
+# 创建新标签页
 uv run dripage tab new --url https://example.com
 
-# Switch to tab (by index)
+# 切换到标签页（按索引）
 uv run dripage tab switch 0
 
-# Close tab
+# 关闭标签页
 uv run dripage tab close 0
 ```
 
-### Network Packet Capture
+### 网络数据包捕获
 
 ```bash
-# Start capturing JSON responses
+# 开始捕获 JSON 响应
 uv run dripage capture start --content-type application/json
 
-# Query captured packets
+# 查询捕获的数据包
 uv run dripage capture query --limit 10
 
-# Stop capturing
+# 停止捕获
 uv run dripage capture stop
 ```
 
 ---
 
-## Documentation
+## 文档
 
-- [README_CLI.md](README_CLI.md) - Complete CLI reference
-- [MCP_SERVER_README.md](MCP_SERVER_README.md) - MCP server documentation
-- [AGENTS.md](AGENTS.md) - Project-specific coding guidelines
-- [example/README.md](example/README.md) - Usage examples
+- [README_CLI.md](README_CLI.md) - 完整的 CLI 参考
+- [MCP_SERVER_README.md](MCP_SERVER_README.md) - MCP 服务器文档
+- [AGENTS.md](AGENTS.md) - 项目特定的编码指南
+- [example/README.md](example/README.md) - 使用示例
 
 ---
 
-## Requirements
+## 环境要求
 
 - Python 3.13+
-- Chrome/Chromium browser
+- Chrome/Chromium 浏览器
 - [DrissionPage](https://github.com/g1879/DrissionPage)
 - FastMCP
 - MarkItDown
 
-## License
+## 许可证
 
 MIT
