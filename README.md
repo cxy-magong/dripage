@@ -30,6 +30,19 @@ cp .env.example .env
 # 编辑 .env 并填入你的 API 密钥
 ```
 
+### 全局安装（可选）
+
+```bash
+# Windows: 运行安装脚本
+install.cmd
+
+# Linux/Mac: 运行安装脚本
+bash install.sh
+
+# 安装后，可在任何位置直接使用 dripage 命令
+dripage --help
+```
+
 ### 2. 配置环境
 
 编辑 `.env` 文件并添加所需的 API 密钥：

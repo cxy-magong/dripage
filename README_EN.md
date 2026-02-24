@@ -28,6 +28,19 @@ cp .env.example .env
 # Edit .env and fill in your API keys
 ```
 
+### Global Installation (Optional)
+
+```bash
+# Windows: Run installer
+install.cmd
+
+# Linux/Mac: Run installer
+bash install.sh
+
+# After installation, use dripage command from anywhere
+dripage --help
+```
+
 ### 2. Configure Environment
 
 Edit `.env` file and add required API keys:
