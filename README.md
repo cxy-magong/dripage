@@ -1,190 +1,179 @@
 # Dripage 🚀
 
-Browser automation and vision analysis via MCP (Model Context Protocol).
+Browser automation tool with CLI support, MCP server integration, and vision analysis capabilities.
 
 ## Features
 
-- 🌐 **Browser Automation**: Navigate, interact with web pages
+- 🌐 **Browser Automation**: Navigate, interact with web pages via CLI
 - 📄 **Content Extraction**: Save pages as Markdown, HTML, images, or MHTML
 - 👁️ **Vision Analysis**: Analyze screenshots using GLM-4V vision model
 - 🔍 **Element Location**: Find and locate elements using vision + coordinates
 - 📡 **Network Packet Capture**: Background packet monitoring with filtering capabilities
+- 🔌 **MCP Server**: Model Context Protocol integration for AI agents
 
-## Quick Start
+## Quick Start (CLI)
 
-### 1. Start MCP Server
-
-**HTTP Mode (for testing):**
-```bash
-PYTHONPATH="G:\code\agent-use\dripage" uv run mcp_server.py http
-```
-
-**STDIO Mode (for production):**
-```bash
-PYTHONPATH="G:\code\agent-use\dripage" uv run mcp_server.py
-```
-
-### 2. Use with mcporter CLI
+### 1. Installation
 
 ```bash
-mcporter --config config/mcporter-http.json dripage --schema
-# Save current page as markdown
-mcporter call --config config/mcporter-http.json dripage.get
+# Clone repository
+git clone <repository-url>
+cd dripage
 
-# Navigate and save
-mcporter call --config config/mcporter-http.json dripage.get url:'https://example.com' formats:'["markdown"]'
+# Install dependencies (requires Python 3.13+)
+uv sync
 
-# Save multiple formats
-mcporter call --config config/mcporter-http.json dripage.get url:'https://example.com' formats:'["markdown","html","img"]'
-
-# Network Listener - Monitor API responses
-# Start listening for JSON API calls
-mcporter call --config config/mcporter-http.json dripage.network_start_listener_tool mimeType:'application/json' url_include:'api'
-
-# Get captured network data
-mcporter call --config config/mcporter-http.json dripage.network_get_listener_data_tool
-
-# Stop listening and clear data
-mcporter call --config config/mcporter-http.json dripage.network_stop_listener_tool clear_data:true
-
-# Monitor all network traffic
-mcporter call --config config/mcporter-http.json dripage.network_start_listener_tool
+# Set up environment variables
+cp .env.example .env
+# Edit .env and fill in your API keys
 ```
 
-### 3. Use with MCP Clients (Claude Desktop, Cursor, etc.)
+### 2. Configure Environment
 
-Configure in your MCP client settings using `config/mcporter.json` or `config/mcporter-http.json`.
-
-### 4. MCP Server Management
-
-Use's MCP manager to control's server lifecycle:
+Edit `.env` file and add required API keys:
 
 ```bash
-# Start server (HTTP mode, port 8000)
-uv run mcp_manager.py start
-
-# Check server status
-uv run mcp_manager.py status
-
-# View recent logs
-uv run mcp_manager.py logs --lines 50
-
-# Restart server
-uv run mcp_manager.py restart
-
-# Stop server
-uv run mcp_manager.py stop
+# Required for vision analysis
+ZAI_API_KEY="your_zhipuai_api_key_here"
 ```
 
-**Custom startup:**
+### 3. Start Browser
+
 ```bash
-# Start on custom port
-uv run mcp_manager.py start --port 8080
+# Start browser with default configuration
+uv run dripage browser start
 
-# Start STDIO mode
-uv run mcp_manager.py start --transport stdio
+# Or start with custom configuration
+uv run dripage browser start --address 127.0.0.1:19222
 ```
 
-**Custom startup:**
+### 4. Common Commands
+
 ```bash
-# Start on custom port
-uv run mcp_manager.py start --port 8080
+# Navigate to a webpage
+uv run dripage tab new --url https://example.com
 
-# Start STDIO mode
-uv run mcp_manager.py start --transport stdio
+# Get page content as markdown
+uv run dripage get
+
+# Take a screenshot
+uv run dripage screenshot
+
+# Analyze page with vision
+uv run dripage vision "What's on this page?"
+
+# Click at coordinates
+uv run dripage click 100 200
+
+# List tabs
+uv run dripage tab list
+
+# Get help
+uv run dripage --help
 ```
 
-The manager automatically handles:
-- Process lifecycle (start/stop/restart)
-- PID tracking and state persistence
-- Log file management
-- Health checks
+### 5. Use with AI (OpenCode, Claude, etc.)
 
-## Configuration
+When working with AI agents, simply ask to use `dripage` CLI commands:
 
-Main configuration file: `config/mcp_config.yaml`
+> "Navigate to https://github.com and take a screenshot"
+
+> "Find the search box and input 'test'"
+
+> "Get the page content as markdown"
+
+For complete CLI documentation, see [README_CLI.md](README_CLI.md).
+
+---
+
+## MCP Server (Optional)
+
+### Quick Start
+
+```bash
+# Start MCP server (HTTP mode for testing)
+uv run mcp_server.py http
+
+# Or start MCP server (STDIO mode for production)
+uv run mcp_server.py
+```
+
+### Configuration
+
+Edit `config/mcp_config.yaml` to configure browser and vision settings:
 
 ```yaml
 browser:
-  address: "127.0.0.1:19222"  # Browser connection address
-
-output:
-  directory: "output/data"       # Output directory
+  address: "127.0.0.1:19222"
 
 vision:
-  model: "glm-4v-flash"         # Vision model
+  model: "glm-4v-flash"
   temperature: 0.7
   max_tokens: 1024
 ```
 
-For detailed configuration and MCP tools documentation, see [config/README.md](config/README.md).
-
-## dripage-cli Agent Skills
-
-### Installation for OpenCode
-
-Install the dripage-cli Agent Skill for direct command-line usage:
-
-```bash
-# Copy skill to OpenCode skills directory
-cp -r Skills/dripage-cli "C:/Users/mg/.config/opencode/skills/"
-```
-
-### Usage in Claude Code
-
-Once installed, use the skill when asking about:
-- "dripage command"
-- "browser automation via CLI"
-- "command-line browser testing"
-- "verify page with dripage"
-
-### Key Commands
-
-| Task | Command |
-|------|---------|
-| Check status | `dripage browser status` |
-| Start browser | `dripage browser start` |
-| Open webpage | `dripage tab new --url <URL>` |
-| Screenshot | `dripage screenshot` |
-| Get content | `dripage get [URL]` |
-| Vision analyze | `dripage vision --query "<question>"` |
-| Get help | `dripage --help` |
-
-For complete reference, see [Skills/dripage-cli/SKILL.md](./Skills/dripage-cli/SKILL.md).
+For detailed MCP documentation, see [MCP_SERVER_README.md](MCP_SERVER_README.md).
 
 ---
 
-## MCP Tools
+## Advanced Configuration
 
-### Core Tools
+### Browser Management
 
-- `get` - Save page content in various formats
-- `browser_navigate_tool` - Navigate to URL
-- `browser_get_current_page_tool` - Get current page info
-- `browser_screenshot_tool` - Take screenshot
-- `browser_click_tool` - Click at coordinates
-- `browser_input_tool` - Input text at coordinates
-- `browser_press_key_tool` - Press keyboard keys
-- `browser_scroll_tool` - Scroll page
+```bash
+# Check browser status
+uv run dripage browser status
 
-### Vision & Analysis Tools
+# Stop browser
+uv run dripage browser stop
 
-- `vision_analyze_tool` - Analyze images with GLM-4V
-- `locate_element_tool` - Find elements using vision + coordinates
-- `coordinate_convert_box_tool` - Convert GLM-4V coordinates
-- `coordinate_parse_and_convert_tool` - Parse and convert coordinates
-- `coordinate_convert_from_image_tool` - Convert based on image dimensions
+# Get CDP URL
+uv run dripage browser cdp
+```
 
-### Network Monitoring Tools
+### Tab Management
 
-- `network_start_listener_tool` - Start monitoring network responses (CDP)
-- `network_get_listener_data_tool` - Get captured network data
-- `network_stop_listener_tool` - Stop monitoring network responses
-- `network_clear_listener_data_tool` - Clear captured network data
+```bash
+# List all tabs
+uv run dripage tab list
+
+# Create new tab
+uv run dripage tab new --url https://example.com
+
+# Switch to tab (by index)
+uv run dripage tab switch 0
+
+# Close tab
+uv run dripage tab close 0
+```
+
+### Network Packet Capture
+
+```bash
+# Start capturing JSON responses
+uv run dripage capture start --content-type application/json
+
+# Query captured packets
+uv run dripage capture query --limit 10
+
+# Stop capturing
+uv run dripage capture stop
+```
+
+---
+
+## Documentation
+
+- [README_CLI.md](README_CLI.md) - Complete CLI reference
+- [MCP_SERVER_README.md](MCP_SERVER_README.md) - MCP server documentation
+- [AGENTS.md](AGENTS.md) - Project-specific coding guidelines
+- [example/README.md](example/README.md) - Usage examples
+
+---
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.13+
 - Chrome/Chromium browser
 - [DrissionPage](https://github.com/g1879/DrissionPage)
 - FastMCP
