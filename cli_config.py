@@ -47,7 +47,7 @@ class VisionConfig:
 class CaptureConfig:
     """Packet capture configuration."""
     enabled: bool = False
-    output_dir: str = "output/packets"
+    output_dir: str = str(OUTPUT_DIR / "packets")
     filters: Dict[str, Any] = field(default_factory=dict)
     save_all: bool = False
 
@@ -59,7 +59,7 @@ class DripageConfig:
     vision: VisionConfig = field(default_factory=VisionConfig)
     capture: CaptureConfig = field(default_factory=CaptureConfig)
     output: Dict[str, Any] = field(default_factory=lambda: {
-        "directory": "output/data"
+        "directory": str(OUTPUT_DIR / "data")
     })
 
 

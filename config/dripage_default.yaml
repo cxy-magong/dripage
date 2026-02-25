@@ -8,10 +8,10 @@ browser:
 capture:
   enabled: false
   filters: {}
-  output_dir: output/packets
+  output_dir: G:\code\agent-use\dripage\output\packets
   save_all: false
 output:
-  directory: output/data
+  directory: G:\code\agent-use\dripage\output\data
 vision:
   max_tokens: 1024
   model: glm-4v-flash
