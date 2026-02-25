@@ -632,6 +632,50 @@ def page_locate(query: str, image: Optional[str] = None, click: bool = False):
                     echo(f"  Query: {query}")
                     echo(f"  Original box (GLM): {original_box}")
                     echo(f"  Converted box: {converted_box}")
+
+                    # Display element info if available
+                    element_info = data.get('element_info')
+                    if element_info:
+                        echo()
+                        echo(f"  Element information:")
+                        echo(f"    Tag: {element_info.get('tagName', 'N/A')}")
+                        if element_info.get('id'):
+                            echo(f"    ID: {element_info.get('id')}")
+                        if element_info.get('className'):
+                            echo(f"    Class: {element_info.get('className')}")
+                        if element_info.get('name'):
+                            echo(f"    Name: {element_info.get('name')}")
+                        if element_info.get('type'):
+                            echo(f"    Type: {element_info.get('type')}")
+                        if element_info.get('placeholder'):
+                            echo(f"    Placeholder: {element_info.get('placeholder')}")
+                        if element_info.get('xpath'):
+                            echo(f"    XPath: {element_info.get('xpath')}")
+
+                        # Display text content (use truncated version if available)
+                        if element_info.get('textContent_display'):
+                            text_display = element_info.get('textContent_display', '')
+                            echo(f"    Text: {text_display}...")
+                            if element_info.get('textContent_truncated'):
+                                text_file = element_info.get('textContent_file')
+                                echo(f"          ⚠️  Full text saved to: {text_file}")
+                        elif element_info.get('textContent'):
+                            text = element_info.get('textContent', '')[:50]
+                            echo(f"    Text: {text}...")
+
+                        # Display HTML (use truncated version if available)
+                        if element_info.get('outerHTML_display'):
+                            html_display = element_info.get('outerHTML_display', '')
+                            echo(f"    HTML: {html_display}...")
+                            if element_info.get('outerHTML_truncated'):
+                                html_file = element_info.get('outerHTML_file')
+                                echo(f"          ⚠️  Full HTML saved to: {html_file}")
+                        elif element_info.get('outerHTML'):
+                            html = element_info.get('outerHTML', '')[:200]
+                            echo(f"    HTML: {html}...")
+
+                        if element_info.get('attributes'):
+                            echo(f"    Attributes: {len(element_info.get('attributes'))} found")
                 else:
                     echo(f"✓ Vision analysis completed")
                     echo(f"  Query: {query}")

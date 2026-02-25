@@ -6,8 +6,10 @@ and coordinate conversion. Reuses tools from tools/agent_tools.py.
 """
 import json
 import sys
+import os
 from pathlib import Path
 from typing import Optional, Union
+from datetime import datetime
 
 import sys
 project_root = Path(__file__).resolve().parent
@@ -35,7 +37,7 @@ def locate_element(
         tab_id: Tab identifier (None=current tab, int=index, str=tab_id)
 
     Returns:
-        JSON string with element location, converted coordinates, and analysis details.
+        JSON string with element location, converted coordinates, and element details.
     """
     try:
         from tools.agent_tools import locate_element
@@ -54,6 +56,89 @@ def locate_element(
         else:
             locate_result = result
 
+        # Extract converted coordinates to get element info
+        element_info = None
+        tool_calls = locate_result.get("tool_calls", [])
+
+        if tool_calls:
+            # Get first tool call result
+            first_tool = tool_calls[0]
+            result_data = first_tool.get("result", {})
+            converted_coords = result_data.get("converted_coordinates", {})
+
+            if converted_coords:
+                # Get first converted box
+                first_box_key = list(converted_coords.keys())[0]
+                box_data = converted_coords[first_box_key]
+                converted_box = box_data.get("converted_box")
+
+                if converted_box and len(converted_box) == 4:
+                    # Calculate center point
+                    x1, y1, x2, y2 = converted_box
+                    center_x = (x1 + x2) // 2
+                    center_y = (y1 + y2) // 2
+
+                    # Get element info at center point using CDP
+                    try:
+                        from tools import get_element_at_position
+                        from cli_config import OUTPUT_DIR
+                        from datetime import datetime
+                        import os
+
+                        element_result = json.loads(
+                            get_element_at_position(x=center_x, y=center_y, tab_id=tab_id)
+                        )
+
+                        if element_result.get("status") == "success":
+                            element_info = element_result.get("element", {})
+
+                            # 限制 HTML 和文本显示长度
+                            max_html_length = 500
+                            max_text_length = 200
+
+                            outer_html = element_info.get('outerHTML', '')
+                            text_content = element_info.get('textContent', '')
+
+                            # 检查是否需要截断
+                            html_truncated = len(outer_html) > max_html_length
+                            text_truncated = len(text_content) > max_text_length
+
+                            # 截断显示
+                            if html_truncated:
+                                element_info['outerHTML_display'] = outer_html[:max_html_length]
+                                element_info['outerHTML_truncated'] = True
+                                # 保存完整 HTML 到文件
+                                element_dir = OUTPUT_DIR / "page_data" / "elements"
+                                element_dir.mkdir(parents=True, exist_ok=True)
+                                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                                html_file = element_dir / f"element_{timestamp}.html"
+                                with open(html_file, 'w', encoding='utf-8') as f:
+                                    f.write(f"<!-- Query: {query} -->\n")
+                                    f.write(f"<!-- Position: ({center_x}, {center_y}) -->\n")
+                                    f.write(f"<!-- Box: [{x1}, {y1}, {x2}, {y2}] -->\n")
+                                    f.write(outer_html)
+                                element_info['outerHTML_file'] = str(html_file)
+
+                            if text_truncated:
+                                element_info['textContent_display'] = text_content[:max_text_length]
+                                element_info['textContent_truncated'] = True
+                                # 保存完整文本到文件
+                                element_dir = OUTPUT_DIR / "page_data" / "elements"
+                                element_dir.mkdir(parents=True, exist_ok=True)
+                                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                                text_file = element_dir / f"element_{timestamp}.txt"
+                                with open(text_file, 'w', encoding='utf-8') as f:
+                                    f.write(f"Query: {query}\n")
+                                    f.write(f"Position: ({center_x}, {center_y})\n")
+                                    f.write(f"Box: [{x1}, {y1}, {x2}, {y2}]\n")
+                                    f.write(f"\nText Content:\n")
+                                    f.write(text_content)
+                                element_info['textContent_file'] = str(text_file)
+
+                    except Exception as e:
+                        # If getting element info fails, continue without it
+                        echo(f"⚠️  Failed to get element info: {str(e)}")
+
         # Format result for CLI
         result_dict = {
             "status": "success",
@@ -62,6 +147,10 @@ def locate_element(
             "tab_id": tab_id,
             **locate_result
         }
+
+        # Add element info if available
+        if element_info:
+            result_dict["element_info"] = element_info
 
         return json.dumps(result_dict, ensure_ascii=False, indent=2)
 
