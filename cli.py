@@ -180,6 +180,91 @@ def reset():
     echo("✓ Reset to default configuration")
 
 
+@config.command(name='show')
+def config_show():
+    """Show current configuration with source information.
+
+    Example:
+        dripage config show
+    """
+    from cli_config import get_current_config, get_config_source
+
+    config = get_current_config()
+    source_info = get_config_source()
+
+    echo("Current Configuration:")
+    echo()
+    echo(f"  Source: {style(source_info['source'], fg='cyan')}")
+    echo(f"    Detail: {source_info['detail']}")
+    echo()
+    echo(f"  Browser: {style(config.browser.name, fg='cyan')} @ {config.browser.address}")
+    echo(f"    App ID: {source_info['app_id']}")
+    echo()
+    echo(f"  Working Directory:")
+    echo(f"    {source_info['cwd']}")
+
+
+@config.command(name='set-user')
+@click.option('--app', help='App ID (e.g., crawler_prod)')
+@click.option('--browser', help='Browser name (e.g., browser1)')
+def config_set_user(app: Optional[str], browser: Optional[str]):
+    """Set user-level app configuration.
+
+    This configuration is stored in ~/.dripage/current_app and will be used
+    when no project config or environment variable is set.
+
+    Examples:
+        dripage config set-user --app crawler_prod --browser browser1
+
+        dripage config set-user --browser browser2
+    """
+    if not browser:
+        echo(style("✗ --browser is required", fg='red'))
+        sys.exit(1)
+
+    home = Path.home()
+    config_path = home / '.dripage'
+    current_app_path = config_path / 'current_app'
+
+    config_path.mkdir(parents=True, exist_ok=True)
+
+    data = {
+        'app_id': app or browser,
+        'browser': browser,
+        'timestamp': datetime.now().isoformat()
+    }
+
+    with open(current_app_path, 'w', encoding='utf-8') as f:
+        yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
+
+    echo(f"✓ User app configuration saved")
+    echo(f"  App ID: {data['app_id']}")
+    echo(f"  Browser: {data['browser']}")
+    echo(f"  Config file: {current_app_path}")
+    echo()
+    echo("ℹ️  This configuration will be used when:")
+    echo("    - No .dripage/config in current directory")
+    echo("    - No DRIPAGE_BROWSER environment variable set")
+
+
+@config.command(name='clear-user')
+def config_clear_user():
+    """Clear user-level app configuration.
+
+    Example:
+        dripage config clear-user
+    """
+    home = Path.home()
+    current_app_path = home / '.dripage' / 'current_app'
+
+    if current_app_path.exists():
+        current_app_path.unlink()
+        echo("✓ User app configuration cleared")
+        echo(f"  Removed: {current_app_path}")
+    else:
+        echo("ℹ️  No user app configuration found")
+
+
 # ==================== Browser Commands ====================
 
 @cli.group()
@@ -203,6 +288,12 @@ def browser_start(name: Optional[str], address: str, browser_path: str, user_dat
 
         dripage browser start --address 127.0.0.1:19222
     """
+    # If name not specified, use current config
+    if name is None:
+        from cli_config import get_current_config
+        config = get_current_config()
+        name = config.browser.name
+
     config_override = {}
     if address:
         config_override['address'] = address
@@ -235,6 +326,12 @@ def browser_stop(name: Optional[str] = None):
 
         dripage browser stop --name browser1
     """
+    # If name not specified, use current config
+    if name is None:
+        from cli_config import get_current_config
+        config = get_current_config()
+        name = config.browser.name
+
     result = stop_browser(name=name)
 
     if result['success']:
@@ -255,11 +352,17 @@ def browser_status(name: Optional[str] = None):
 
         dripage browser status --name browser1
     """
+    from cli_config import get_current_config
+
     result = get_browser_status(name=name)
 
     if result['success']:
         data = result['data']
         echo(f"✓ Browser status retrieved")
+
+        # Get current browser from config
+        current_config = get_current_config()
+        current_browser = current_config.browser.name
 
         # Handle single browser or all browsers
         if 'browsers' in data:
@@ -268,12 +371,19 @@ def browser_status(name: Optional[str] = None):
             echo(f"  Total browsers: {data.get('total', 0)}")
             echo(f"  Running: {data.get('running', 0)}")
             echo()
+            echo(f"  Current browser: {style(current_browser, fg='yellow', bold=True)}")
+            echo()
 
             for browser_name, browser_info in browsers.items():
                 status_icon = style('●', fg='green', bold=True) if browser_info.get('status') == 'running' else '○'
                 status_text = style('running', fg='green') if browser_info.get('status') == 'running' else 'stopped'
 
-                echo(f"  {status_icon} {style(browser_name, fg='cyan')}: {status_text}")
+                # Mark current browser with ★
+                browser_label = browser_name
+                if browser_name == current_browser:
+                    browser_label = f"{style('★', fg='yellow', bold=True)} {style(browser_name, fg='yellow', bold=True)} {style('[CURRENT]', fg='yellow')}"
+
+                echo(f"  {status_icon} {browser_label}: {status_text}")
                 if browser_info.get('status') == 'running':
                     echo(f"    Address: {browser_info.get('address', 'N/A')}")
                     echo(f"    CDP URL: {browser_info.get('cdp_url', 'N/A')}")

@@ -14,3 +14,13 @@ worktrees
 
 # Environment variables
 .env
+
+# Dripage runtime configurations
+config/dripage_session.yaml
+.dripage/config
+
+# Temporary files
+test_project/
+*.tmp
+*.bak
+cleanup.py

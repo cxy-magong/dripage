@@ -2,8 +2,14 @@
 Configuration management for Dripage CLI.
 
 Manages default configuration and session profiles to avoid repetitive parameter passing.
+Supports multi-level configuration priority:
+1. Environment variable DRIPAGE_BROWSER
+2. Project-level config (.dripage/config)
+3. User-level app config (~/.dripage/current_app)
+4. Global default config
 """
 import json
+import os
 import yaml
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -151,14 +157,32 @@ class ConfigManager:
         with open(self.session_file, 'r', encoding='utf-8') as f:
             data = yaml.safe_load(f) or {}
 
-        # Find the session
+        # Support both single session format and sessions array format
         sessions = data.get('sessions', [])
-        for session in sessions:
-            if session.get('session_id') == session_id:
-                browser_data = session.get('browser', {})
-                vision_data = session.get('vision', {})
-                capture_data = session.get('capture', {})
-                output_data = session.get('output', {})
+        if sessions:
+            # Multi-session format
+            for session in sessions:
+                if session.get('session_id') == session_id:
+                    browser_data = session.get('browser', {})
+                    vision_data = session.get('vision', {})
+                    capture_data = session.get('capture', {})
+                    output_data = session.get('output', {})
+
+                    return DripageConfig(
+                        browser=BrowserConfig(**browser_data),
+                        vision=VisionConfig(
+                            **{k: v for k, v in vision_data.items() if v is not None}
+                        ),
+                        capture=CaptureConfig(**capture_data),
+                        output=output_data,
+                    )
+        else:
+            # Single session format (current file format)
+            if data.get('session_id') == session_id or data.get('current_session') == session_id:
+                browser_data = data.get('browser', {})
+                vision_data = data.get('vision', {})
+                capture_data = data.get('capture', {})
+                output_data = data.get('output', {})
 
                 return DripageConfig(
                     browser=BrowserConfig(**browser_data),
@@ -216,16 +240,191 @@ def get_default_config() -> DripageConfig:
 
 
 def get_current_config() -> DripageConfig:
-    """Get current configuration (default or session)."""
+    """Get current configuration with multi-level detection.
+
+    Priority:
+        1. DRIPAGE_BROWSER environment variable (highest)
+        2. Project-level config (.dripage/config in CWD)
+        3. User-level app config (~/.dripage/current_app)
+        4. Global default config (lowest)
+
+    Returns:
+        DripageConfig object with loaded configuration
+    """
     manager = ConfigManager()
-    session_id = manager.get_current_session_id()
 
-    if session_id:
-        session_config = manager.load_session(session_id)
-        if session_config:
-            return session_config
+    # ========== Priority 1: Environment Variable ==========
+    browser_name = os.getenv('DRIPAGE_BROWSER')
+    if browser_name:
+        browser_name = browser_name.strip()  # Remove whitespace
+        config = _load_browser_config_by_name(browser_name)
+        if config:
+            config.browser.source = 'environment'
+            config.browser.source_detail = f'DRIPAGE_BROWSER={browser_name}'
+            print(f"ℹ️  Using browser from environment: {browser_name}", file=sys.stderr)
+            return config
 
-    return manager.load_config()
+    # ========== Priority 2: Project-level config ==========
+    project_config = _load_project_config()
+    if project_config:
+        project_config.browser.source = 'project'
+        project_config.browser.source_detail = str(Path.cwd() / '.dripage' / 'config')
+        print(f"ℹ️  Using browser from project config: {project_config.browser.name}", file=sys.stderr)
+        return project_config
+
+    # ========== Priority 3: User-level app config ==========
+    user_app_config = _load_user_app_config()
+    if user_app_config:
+        user_app_config.browser.source = 'user'
+        user_app_config.browser.source_detail = '~/.dripage/current_app'
+        print(f"ℹ️  Using browser from user config: {user_app_config.browser.name}", file=sys.stderr)
+        return user_app_config
+
+    # ========== Priority 4: Global default ==========
+    config = manager.load_config()
+    config.browser.source = 'default'
+    config.browser.source_detail = 'dripage_default.yaml'
+    print(f"ℹ️  Using global default browser: {config.browser.name}", file=sys.stderr)
+    return config
+
+
+def _load_project_config() -> Optional[DripageConfig]:
+    """Load project-level config from CWD/.dripage/config."""
+    cwd = Path.cwd()
+    config_path = cwd / '.dripage' / 'config'
+
+    if not config_path.exists():
+        return None
+
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f) or {}
+
+        if not data:
+            return None
+
+        browser_name = data.get('browser')
+        if not browser_name:
+            return None
+
+        config = _load_browser_config_by_name(browser_name)
+        if config:
+            # Set app_id if provided
+            app_id = data.get('app_id', cwd.name)
+            if not hasattr(config.browser, 'app_id'):
+                config.browser.app_id = app_id
+            else:
+                config.browser.app_id = app_id
+
+            # Override output directory if specified
+            if 'output' in data and 'directory' in data['output']:
+                config.output['directory'] = data['output']['directory']
+
+            # Override vision config if specified
+            if 'vision' in data:
+                for key, value in data['vision'].items():
+                    if hasattr(config.vision, key):
+                        setattr(config.vision, key, value)
+
+            return config
+
+    except Exception as e:
+        print(f"⚠️  Warning: Failed to load project config from {config_path}: {e}",
+              file=sys.stderr)
+
+    return None
+
+
+def _load_user_app_config() -> Optional[DripageConfig]:
+    """Load user-level app config from ~/.dripage/current_app."""
+    home = Path.home()
+    config_path = home / '.dripage' / 'current_app'
+
+    if not config_path.exists():
+        return None
+
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f) or {}
+
+        if not data:
+            return None
+
+        browser_name = data.get('browser')
+        if browser_name:
+            config = _load_browser_config_by_name(browser_name)
+            if config and hasattr(config.browser, 'app_id'):
+                config.browser.app_id = data.get('app_id')
+            return config
+
+    except Exception as e:
+        print(f"⚠️  Warning: Failed to load user app config: {e}", file=sys.stderr)
+
+    return None
+
+
+def _load_browser_config_by_name(browser_name: str) -> DripageConfig:
+    """Load browser config by name from config/browsers.yaml.
+
+    Args:
+        browser_name: Browser name from browsers.yaml
+
+    Returns:
+        DripageConfig with loaded browser configuration
+    """
+    manager = ConfigManager()
+    config = manager.load_config()
+
+    from utils.chrome_manager import ChromeManager
+    import configparser
+
+    chrome_mgr = ChromeManager()
+    browser_config = chrome_mgr.load_browser_config(browser_name)
+
+    if browser_config:
+        config.browser.name = browser_name
+        config.browser.ini_file = browser_config.get('ini_file', '')
+
+        # Load address from INI file
+        ini_file = config.browser.ini_file
+        if ini_file and Path(ini_file).exists():
+            try:
+                ini_config = configparser.ConfigParser()
+                ini_config.read(ini_file, encoding='utf-8')
+                if 'chromium_options' in ini_config:
+                    address = ini_config['chromium_options'].get('address')
+                    if address:
+                        config.browser.address = address
+            except Exception as e:
+                print(f"⚠️  Warning: Failed to load INI file {ini_file}: {e}", file=sys.stderr)
+    else:
+        print(f"⚠️  Warning: Browser '{browser_name}' not found in config/browsers.yaml", file=sys.stderr)
+
+    return config
+
+
+def get_config_source() -> str:
+    """Get information about current configuration source.
+
+    Returns:
+        String describing configuration source and current browser
+    """
+    manager = ConfigManager()
+    config = get_current_config()
+
+    source = getattr(config.browser, 'source', 'unknown')
+    source_detail = getattr(config.browser, 'source_detail', 'N/A')
+
+    result = {
+        'source': source,
+        'detail': source_detail,
+        'browser': config.browser.name,
+        'address': config.browser.address,
+        'app_id': getattr(config.browser, 'app_id', 'N/A'),
+        'cwd': str(Path.cwd())
+    }
+
+    return result
 
 
 if __name__ == "__main__":
