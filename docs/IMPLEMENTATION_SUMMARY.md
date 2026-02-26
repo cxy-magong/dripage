@@ -10,9 +10,10 @@
 ```
 优先级（从高到低）：
 1. DRIPAGE_BROWSER 环境变量         ← 最高优先级
-2. 项目配置 (.dripage/config)        ← 项目级默认
+2. 项目配置            ← 项目级默认
 3. 用户配置 (~/.dripage/current_app) ← 用户级默认
-4. 全局配置 (dripage_default.yaml)   ← 最低优先级
+4. 会话配置 (dripage_session.yaml)   ← 会话级默认
+5. 全局配置 (dripage_default.yaml)   ← 最低优先级
 ```
 
 ### 2. 支持的场景

@@ -247,7 +247,8 @@ def get_current_config() -> DripageConfig:
         1. DRIPAGE_BROWSER environment variable (highest)
         2. Project-level config (.dripage/config in CWD)
         3. User-level app config (~/.dripage/current_app)
-        4. Global default config (lowest)
+        4. Session config (dripage_session.yaml current_session)
+        5. Global default config (lowest)
 
     Returns:
         DripageConfig object with loaded configuration
@@ -281,12 +282,68 @@ def get_current_config() -> DripageConfig:
         print(f"ℹ️  Using browser from user config: {user_app_config.browser.name}", file=sys.stderr)
         return user_app_config
 
-    # ========== Priority 4: Global default ==========
+    # ========== Priority 4: Session config ==========
+    session_config = _load_session_config()
+    if session_config:
+        session_config.browser.source = 'session'
+        session_config.browser.source_detail = 'dripage_session.yaml'
+        print(f"ℹ️  Using browser from session config: {session_config.browser.name}", file=sys.stderr)
+        return session_config
+
+    # ========== Priority 5: Global default ==========
     config = manager.load_config()
     config.browser.source = 'default'
     config.browser.source_detail = 'dripage_default.yaml'
     print(f"ℹ️  Using global default browser: {config.browser.name}", file=sys.stderr)
     return config
+
+
+def _load_session_config() -> Optional[DripageConfig]:
+    """Load session config from dripage_session.yaml.
+
+    Returns:
+        DripageConfig if session is configured, None otherwise
+    """
+    if not SESSION_CONFIG_FILE.exists():
+        return None
+
+    try:
+        with open(SESSION_CONFIG_FILE, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f) or {}
+
+        if not data:
+            return None
+
+        # Check for current_session or session_id
+        session_id = data.get('current_session') or data.get('session_id')
+        if not session_id:
+            return None
+
+        # If session_id is a browser name, load that browser config
+        browser_name = session_id
+        config = _load_browser_config_by_name(browser_name)
+        if config:
+            return config
+
+        # Fallback: load browser config from session file directly
+        browser_data = data.get('browser', {})
+        if browser_data:
+            manager = ConfigManager()
+            default_config = manager.load_config()
+
+            default_config.browser.name = browser_data.get('name', 'default')
+            default_config.browser.address = browser_data.get('address', '127.0.0.1:19222')
+            default_config.browser.browser_path = browser_data.get('browser_path', '')
+            default_config.browser.user_data_dir = browser_data.get('user_data_dir', '')
+            default_config.browser.ini_file = browser_data.get('ini_file', '')
+            default_config.browser.headless = browser_data.get('headless', False)
+
+            return default_config
+
+    except Exception as e:
+        print(f"⚠️  Warning: Failed to load session config: {e}", file=sys.stderr)
+
+    return None
 
 
 def _load_project_config() -> Optional[DripageConfig]:
