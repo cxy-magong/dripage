@@ -11,8 +11,7 @@ trigger-phrases:
   - browser automation
   - 页面测试
   - page test
-allowed-tools:
-  - Bash(dripage:*)
+allowed-tools: Bash(dripage:*)
 ---
 
 # Dripage CLI
