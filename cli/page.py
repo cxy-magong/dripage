@@ -5,18 +5,12 @@ Reuses existing tools from tools/ directory to provide page operations
 like get markdown, screenshot, and vision analysis.
 """
 import json
-import sys
 from pathlib import Path
 from typing import Optional
 
-import sys
-project_root = Path(__file__).resolve().parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
 from click import echo
-from cli_config import get_current_config, ConfigManager
-from cli_browser import get_page_object
+from config.settings import get_current_config, ConfigManager
+from cli.browser import get_page_object
 
 
 def get_markdown(url: Optional[str] = None, save: bool = False, tab_id: Optional[str] = None) -> str:

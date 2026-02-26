@@ -104,6 +104,8 @@ class ChromeManager:
             try:
                 # Load configuration from INI file using ChromiumOptions
                 chrome_options = ChromiumOptions(ini_path=ini_file)
+                # Set to connect to existing browser only (WSL compatible)
+                chrome_options.existing_only = True
             except Exception as e:
                 return {
                     "success": False,
@@ -138,6 +140,8 @@ class ChromeManager:
                 chrome_options.set_user_data_path(user_data_dir)
             if browser_path:
                 chrome_options.set_browser_path(browser_path)
+            # Set to connect to existing browser only (WSL compatible)
+            chrome_options.existing_only = True
 
         try:
             # Create browser instance

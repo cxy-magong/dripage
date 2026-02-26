@@ -5,19 +5,13 @@ Provides visual element location capabilities using vision analysis
 and coordinate conversion. Reuses tools from tools/agent_tools.py.
 """
 import json
-import sys
 import os
 from pathlib import Path
 from typing import Optional, Union
 from datetime import datetime
 
-import sys
-project_root = Path(__file__).resolve().parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
 from click import echo
-from cli_config import get_current_config
+from config.settings import get_current_config
 
 
 def locate_element(
@@ -81,7 +75,7 @@ def locate_element(
                     # Get element info at center point using CDP
                     try:
                         from tools import get_element_at_position
-                        from cli_config import OUTPUT_DIR
+                        from config.settings import OUTPUT_DIR
                         from datetime import datetime
                         import os
 

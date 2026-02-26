@@ -12,33 +12,25 @@ import json
 from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
+
+# Add project root to sys.path FIRST
+project_root = Path(__file__).resolve().parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 import click
 from dotenv import load_dotenv
 load_dotenv()
 
-# Fix Windows console encoding issue
-if sys.platform == 'win32':
-    import io
-    # Set UTF-8 encoding for stdout and stderr
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-    # Set environment variable for subprocess calls
-    os.environ['PYTHONIOENCODING'] = 'utf-8'
-
-import sys
-project_root = Path(__file__).resolve().parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
 from click import echo, style, secho
-from cli_config import (
+from config.settings import (
     ConfigManager,
     get_current_config,
     get_default_config,
     DEFAULT_CONFIG_FILE,
     SESSION_CONFIG_FILE
 )
-from cli_browser import (
+from cli.browser import (
     start_browser,
     stop_browser,
     get_browser_status,
@@ -46,22 +38,23 @@ from cli_browser import (
     verify_cdp_connection,
     get_page_object
 )
-from cli_capture import (
+from cli.capture import (
     NetworkCapture,
     PacketFilter,
     start_global_capture,
     stop_global_capture,
     get_global_capture
 )
-from cli_page import (
+from cli.page import (
     get_markdown,
     get_screenshot,
     analyze_vision
 )
-from cli_location import (
+from cli.location import (
     locate_element,
     locate_and_click
 )
+from cli.tab import tab as tab_group
 
 
 # ==================== CLI Entry Point ====================
@@ -107,7 +100,7 @@ def config_set_session(name: Optional[str] = None, set_default: bool = False):
             echo(f"  Browser: {current_config.browser.name} @ {current_config.browser.address}")
         else:
             # Create new session
-            from cli_config import get_current_config
+            from config.settings import get_current_config
             session_config = get_current_config()
             manager.save_session(name, session_config)
             manager.set_current_session(name)
@@ -187,7 +180,7 @@ def config_show():
     Example:
         dripage config show
     """
-    from cli_config import get_current_config, get_config_source
+    from config.settings import get_current_config, get_config_source
 
     config = get_current_config()
     source_info = get_config_source()
@@ -221,6 +214,8 @@ def config_set_user(app: Optional[str], browser: Optional[str]):
     if not browser:
         echo(style("✗ --browser is required", fg='red'))
         sys.exit(1)
+
+    import yaml
 
     home = Path.home()
     config_path = home / '.dripage'
@@ -290,7 +285,7 @@ def browser_start(name: Optional[str], address: str, browser_path: str, user_dat
     """
     # If name not specified, use current config
     if name is None:
-        from cli_config import get_current_config
+        from config.settings import get_current_config
         config = get_current_config()
         name = config.browser.name
 
@@ -328,7 +323,7 @@ def browser_stop(name: Optional[str] = None):
     """
     # If name not specified, use current config
     if name is None:
-        from cli_config import get_current_config
+        from config.settings import get_current_config
         config = get_current_config()
         name = config.browser.name
 
@@ -352,7 +347,7 @@ def browser_status(name: Optional[str] = None):
 
         dripage browser status --name browser1
     """
-    from cli_config import get_current_config
+    from config.settings import get_current_config
 
     result = get_browser_status(name=name)
 
@@ -533,7 +528,7 @@ def capture_query(limit: int, filter: Optional[str] = None):
 
         dripage capture query --filter '.status_code == 200'
     """
-    from cli_capture import NetworkCapture
+    from .capture import NetworkCapture
 
     # Find most recent capture file
     capture = NetworkCapture()
@@ -817,15 +812,13 @@ def action():
 @action.command(name='click')
 @click.argument('x', type=int, required=True)
 @click.argument('y', type=int, required=True)
-@click.option('--clear', is_flag=True, default=True, help='Clear existing text before input (default: True)')
-@click.option('--text', required=True, help='Text to input')
-def action_click(x: int, y: int, clear: bool, text: str):
+def action_click(x: int, y: int):
     """Click at coordinates on the page.
 
     Examples:
-        dripage action click 100 200 --text "search"
+        dripage action click 100 200
 
-        dripage action click 395 76 --clear --text "username"
+        dripage action click 395 76
     """
     from tools import browser_click
 
@@ -875,9 +868,9 @@ def action_scroll(direction: str, amount: int):
     """Scroll the page.
 
     Examples:
-        dripage action scroll down 500
+        dripage action scroll --direction down --amount 500
 
-        dripage action scroll up 300
+        dripage action scroll --direction up --amount 300
     """
     from tools import browser_scroll
 
@@ -894,169 +887,7 @@ def action_scroll(direction: str, amount: int):
 
 
 # ==================== Tab Commands ====================
-
-@cli.group()
-def tab():
-    """Tab management commands."""
-    pass
-
-
-@tab.command(name='list')
-def tab_list():
-    """List all browser tabs.
-
-    Example:
-        dripage tab list
-    """
-    from tools import list_tabs
-
-    result = list_tabs()
-    data = json.loads(result)
-
-    if 'tabs' in data:
-        tabs = data['tabs']
-        echo(f"✓ Found {len(tabs)} tabs")
-        echo()
-        for i, tab in enumerate(tabs, 1):
-            tab_id = tab.get('tab_id', 'N/A')
-            tab_title = tab.get('title', 'N/A')
-            tab_url = tab.get('url', 'N/A')
-            current = ' [current]' if tab.get('is_current', False) else ''
-
-            echo(f"  [{i}] {style(current, fg='green')} {tab_id}: {tab_title}")
-            if tab_url:
-                echo(f"      URL: {tab_url[:60]}...")
-    else:
-        echo("ℹ️  No tabs found")
-
-
-@tab.command(name='new')
-@click.option('--url', help='URL to open in new tab')
-def tab_new(url: Optional[str] = None):
-    """Open a new tab.
-
-    Example:
-        dripage tab new --url https://example.com
-    """
-    from tools import new_tab
-
-    result = new_tab(url=url)
-    data = json.loads(result)
-
-    if data.get('status') == 'success':
-        tab = data.get('tab', {})
-        echo(f"✓ New tab opened")
-        echo(f"  Tab ID: {tab.get('tab_id', 'N/A')}")
-        echo(f"  Title: {tab.get('title', 'N/A')}")
-        if tab.get('url'):
-            echo(f"  URL: {tab.get('url', 'N/A')}")
-    else:
-        echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
-
-
-@tab.command(name='close')
-@click.argument('tab_id', required=False)
-def tab_close(tab_id: Optional[str] = None):
-    """Close a tab.
-
-    Examples:
-        dripage tab close
-
-        dripage tab close 0
-    """
-    from tools import close_tab
-
-    result = close_tab(tab_id=tab_id)
-    data = json.loads(result)
-
-    if data.get('status') == 'success':
-        tab = data.get('tab', {})
-        echo(f"✓ Tab closed")
-        echo(f"  Tab ID: {tab.get('tab_id', 'N/A')}")
-        echo(f"  Title: {tab.get('title', 'N/A')}")
-    else:
-        echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
-
-
-@tab.command(name='locate')
-@click.argument('query', required=True)
-@click.option('--tab-id', help='Tab ID or index to locate element in (default: latest tab)')
-@click.option('--image', help='Path to image file. If not specified, takes screenshot of specified tab')
-@click.option('--click', is_flag=True, help='Click at the located element\'s center after locating')
-def tab_locate(query: str, tab_id: Optional[str] = None, image: Optional[str] = None, click: bool = False):
-    """Locate element on specific tab using vision analysis.
-
-    Examples:
-        dripage tab locate "search button"
-
-        dripage tab locate "submit button" --tab-id 0 --click
-
-        dripage tab locate "login input" --tab-id "E3B0C442" --image /path/to/screenshot.png
-    """
-    # Convert tab_id to int or str as needed
-    target_tab_id = None
-    if tab_id:
-        try:
-            target_tab_id = int(tab_id)
-        except ValueError:
-            target_tab_id = tab_id
-
-    if click:
-        result = locate_and_click(query=query, tab_id=target_tab_id)
-    else:
-        result = locate_element(query=query, image_path=image, tab_id=target_tab_id)
-
-    data = json.loads(result)
-    if data.get('status') == 'success':
-        if click:
-            click_result = data.get('click_result', {})
-            if click_result.get('status') == 'success':
-                located_box = data.get('located_box', [])
-                click_point = data.get('click_point', {})
-                echo(f"✓ Located and clicked element")
-                echo(f"  Query: {query}")
-                echo(f"  Tab ID: {target_tab_id or 'latest'}")
-                echo(f"  Box: {located_box}")
-                echo(f"  Clicked at: ({click_point.get('x', 'N/A')}, {click_point.get('y', 'N/A')})")
-            else:
-                echo(style(f"✗ Click failed: {click_result.get('message', 'Unknown error')}", fg='red', bold=True))
-        else:
-            tool_calls = data.get('tool_calls', [])
-            if tool_calls:
-                first_tool = tool_calls[0]
-                result_data = first_tool.get('result', {})
-                converted_coords = result_data.get('converted_coordinates', {})
-                # Get first converted box from the dict
-                if converted_coords:
-                    first_box_key = list(converted_coords.keys())[0]
-                    box_data = converted_coords[first_box_key]
-                    converted_box = box_data.get('converted_box', [])
-                    original_box = box_data.get('original_box', [])
-                    echo(f"✓ Element located")
-                    echo(f"  Query: {query}")
-                    echo(f"  Tab ID: {target_tab_id or 'latest'}")
-                    echo(f"  Original box (GLM): {original_box}")
-                    echo(f"  Converted box: {converted_box}")
-                else:
-                    echo(f"✓ Vision analysis completed")
-                    echo(f"  Query: {query}")
-                    echo(f"  Tab ID: {target_tab_id or 'latest'}")
-                    vision_result = data.get('vision_result', '')
-                    if isinstance(vision_result, str):
-                        echo(f"  Analysis: {vision_result[:200]}...")
-                    else:
-                        echo(f"  Analysis: {str(vision_result)[:200]}...")
-            else:
-                echo(f"✓ Vision analysis completed")
-                echo(f"  Query: {query}")
-                echo(f"  Tab ID: {target_tab_id or 'latest'}")
-                vision_result = data.get('vision_result', '')
-                if isinstance(vision_result, str):
-                    echo(f"  Analysis: {vision_result[:200]}...")
-                else:
-                    echo(f"  Analysis: {str(vision_result)[:200]}...")
-    else:
-        echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
+cli.add_command(tab_group)
 
 
 # ==================== Main Entry Point ====================

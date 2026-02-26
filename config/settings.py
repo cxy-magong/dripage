@@ -10,23 +10,24 @@ Supports multi-level configuration priority:
 """
 import json
 import os
+import sys
 import yaml
 from pathlib import Path
 from typing import Optional, Dict, Any
 from dataclasses import dataclass, field, asdict
 
-import sys
-project_root = Path(__file__).resolve().parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
-from config.paths import CONFIG_DIR, OUTPUT_DIR
-
+# Paths - use config.paths module for consistency
+from config.paths import (
+    CONFIG_DIR,
+    OUTPUT_DIR,
+    OUTPUT_DATA_DIR,
+    OUTPUT_LOG_DIR,
+    BROWSER_CONFIG_DIR
+)
 
 # Configuration file paths
 DEFAULT_CONFIG_FILE = CONFIG_DIR / "dripage_default.yaml"
 SESSION_CONFIG_FILE = CONFIG_DIR / "dripage_session.yaml"
-CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @dataclass

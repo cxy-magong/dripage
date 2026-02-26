@@ -5,7 +5,6 @@ Provides background packet capture using DrissionPage's Network listener API.
 Captures packets and saves them to files for filtering and analysis.
 """
 import json
-import sys
 import threading
 import time
 from pathlib import Path
@@ -13,14 +12,9 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List, Callable
 from dataclasses import dataclass, asdict, field
 
-import sys
-project_root = Path(__file__).resolve().parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
 from click import echo
-from cli_config import get_current_config, ConfigManager
-from cli_browser import get_page_object
+from config.settings import get_current_config, ConfigManager
+from cli.browser import get_page_object
 
 
 # Global capture state

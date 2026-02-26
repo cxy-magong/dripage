@@ -5,19 +5,13 @@ Provides commands for starting, stopping, checking status of browsers,
 and getting CDP WebSocket URLs. Reuses existing chrome_manager module.
 """
 import json
-import sys
 from pathlib import Path
 from typing import Optional, Dict, Any
 from click import echo
 
-import sys
-project_root = Path(__file__).resolve().parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
 from utils.chrome_manager import ChromeManager
 from utils.drission_page import create_browser
-from cli_config import get_current_config, ConfigManager
+from config.settings import get_current_config, ConfigManager
 
 
 # Global browser manager instance

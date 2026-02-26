@@ -30,6 +30,9 @@ def create_browser(address='127.0.0.1:19222', user_data_dir='', browser_path='',
     if browser_path:
         chrome_options.set_browser_path(browser_path)
 
+    # 设置为仅连接现有浏览器，不尝试查找浏览器路径（WSL 兼容）
+    chrome_options.existing_only = True
+
     try:
         # 创建浏览器连接
         driver = ChromiumPage(addr_or_opts=chrome_options)
