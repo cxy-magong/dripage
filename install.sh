@@ -21,7 +21,7 @@ cat > "$WRAPPER" << EOF
 # 设置环境变量标志，表示这是 CLI 调用（禁用 console 日志）
 export DRIPAGE_CLI=1
 DRIPAGE_HOME="$DRIPAGE_HOME"
-"\$DRIPAGE_HOME/.venv/Scripts/python.exe" "\$DRIPAGE_HOME/cli.py" "\$@"
+"\$DRIPAGE_HOME/.venv/Scripts/python.exe" "\$DRIPAGE_HOME/cli/main.py" "\$@"
 EOF
 
 chmod +x "$WRAPPER"
@@ -35,7 +35,7 @@ REM 设置环境变量标志，表示这是 CLI 调用（禁用 console 日志�
 set "DRIPAGE_CLI=1"
 setlocal
 set "DRIPAGE_HOME=$DRIPAGE_HOME"
-"%DRIPAGE_HOME%\\.venv\\Scripts\\python.exe" "%DRIPAGE_HOME%\\cli.py" %%*
+"%DRIPAGE_HOME%\\.venv\\Scripts\\python.exe" "%DRIPAGE_HOME%\\cli\\main.py" %%*
 endlocal
 EOF
 
@@ -48,7 +48,7 @@ REM 设置环境变量标志，表示这是 CLI 调用（禁用 console 日志�
 set "DRIPAGE_CLI=1"
 setlocal
 set "DRIPAGE_HOME=$DRIPAGE_HOME"
-"%DRIPAGE_HOME%\\.venv\\Scripts\\python.exe" "%DRIPAGE_HOME%\\cli.py" %%*
+"%DRIPAGE_HOME%\\.venv\\Scripts\\python.exe" "%DRIPAGE_HOME%\\cli\\main.py" %%*
 endlocal
 EOF
 

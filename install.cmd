@@ -23,7 +23,7 @@ set "WRAPPER=%TARGET_DIR%\dripage"
 echo #!/bin/bash
 echo export DRIPAGE_CLI=1
 echo DRIPAGE_HOME="%DRIPAGE_HOME:\=/%"
-echo "$DRIPAGE_HOME/.venv/Scripts/python.exe" "$DRIPAGE_HOME/cli.py" "$@"
+echo "$DRIPAGE_HOME/.venv/Scripts/python.exe" "$DRIPAGE_HOME/cli/main.py" "$@"
 ) > "%WRAPPER%"
 
 REM 创建 CMD 包装脚本
@@ -34,7 +34,7 @@ echo @echo off
 echo set "DRIPAGE_CLI=1"
 echo setlocal
 echo set "DRIPAGE_HOME=%DRIPAGE_HOME%"
-echo "%%DRIPAGE_HOME%%\.venv\Scripts\python.exe" "%%DRIPAGE_HOME%%\cli.py" %%*
+echo "%%DRIPAGE_HOME%%\.venv\Scripts\python.exe" "%%DRIPAGE_HOME%%\cli\main.py" %%*
 echo endlocal
 ) > "%WRAPPER_CMD%"
 
@@ -46,7 +46,7 @@ echo @echo off
 echo set "DRIPAGE_CLI=1"
 echo setlocal
 echo set "DRIPAGE_HOME=%DRIPAGE_HOME%"
-echo "%%DRIPAGE_HOME%%\.venv\Scripts\python.exe" "%%DRIPAGE_HOME%%\cli.py" %%*
+echo "%%DRIPAGE_HOME%%\.venv\Scripts\python.exe" "%%DRIPAGE_HOME%%\cli\main.py" %%*
 echo endlocal
 ) > "%WRAPPER_BAT%"
 
