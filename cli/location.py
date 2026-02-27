@@ -87,8 +87,8 @@ def locate_element(
                             element_info = element_result.get("element", {})
 
                             # 限制 HTML 和文本显示长度
-                            max_html_length = 500
-                            max_text_length = 200
+                            max_html_length = 1500
+                            max_text_length = 1200
 
                             outer_html = element_info.get('outerHTML', '')
                             text_content = element_info.get('textContent', '')

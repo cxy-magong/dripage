@@ -38,9 +38,7 @@ echo "%%DRIPAGE_HOME%%\.venv\Scripts\python.exe" "%%DRIPAGE_HOME%%\cli\main.py" 
 echo endlocal
 ) > "%WRAPPER_CMD%"
 
-REM 创建 BAT 包装脚本
-set "WRAPPER_BAT=%TARGET_DIR%\dripage.bat"
-
+REM 创建 BAT 包装脚本（与CMD相同）
 (
 echo @echo off
 echo set "DRIPAGE_CLI=1"
@@ -68,9 +66,9 @@ echo   dripage browser start --name browser1
 echo   dripage browser status
 echo.
 echo Uninstall:
-echo   del %WRAPPER%
-echo   del %WRAPPER_CMD%
-echo   del %WRAPPER_BAT%
+echo   del "%WRAPPER%"
+echo   del "%WRAPPER_CMD%"
+echo   del "%WRAPPER_BAT%"
 echo ========================================
 echo.
 

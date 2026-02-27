@@ -51,7 +51,11 @@ browsers:
     ini_file: "G:\\code\\amazone\\copywriting_production\\config\\dp_conf\\9325.ini"
     description: "Worker browser on port 9325 (proxy: localhost:8851)"
 
+  - name: browser3
+    ini_file: config/browser/browser3.ini
+    description: "Third browser on port 19223"
+
   # ==================== Add More Browsers ====================
-  # - name: browser3
-  #   ini_file: config/browser/browser3.ini
+  # - name: browser4
+  #   ini_file: config/browser/browser4.ini
   #   description: "Custom browser configuration"
