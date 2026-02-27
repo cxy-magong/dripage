@@ -11,6 +11,7 @@ from click import echo
 
 from utils.chrome_manager import ChromeManager
 from utils.drission_page import create_browser
+from utils.window_manager import activate_window_by_pid, get_window_title_by_pid
 from config.settings import get_current_config, ConfigManager
 
 
@@ -181,6 +182,92 @@ def verify_cdp_connection() -> bool:
         else:
             echo(f"✗ CDP port is not open: {address}")
             return False
+
+
+def activate_browser(name: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Activate browser window by name or PID.
+
+    This function finds and brings the browser window to the foreground on Windows.
+
+    Args:
+        name: Browser name from config/browsers.yaml. If None, uses current config.
+
+    Returns:
+        Dict with success status and window information.
+    """
+    import sys
+
+    if sys.platform != 'win32':
+        return {
+            "success": False,
+            "error": "Window activation only works on Windows platform"
+        }
+
+    # Determine browser name
+    if name is None:
+        config = get_current_config()
+        name = config.browser.name
+
+    # Get browser status to find PID
+    manager = get_browser_manager()
+    status_result = manager.get_status(name=name)
+
+    if not status_result['success']:
+        return {
+            "success": False,
+            "error": status_result.get('message', 'Failed to get browser status')
+        }
+
+    data = status_result['data']
+
+    # Handle single browser or multiple browsers
+    if 'browsers' in data:
+        # Multiple browsers
+        browsers = data['browsers']
+        if name not in browsers:
+            return {
+                "success": False,
+                "error": f"Browser '{name}' not found"
+            }
+
+        browser_info = browsers[name]
+        if browser_info.get('status') != 'running':
+            return {
+                "success": False,
+                "error": f"Browser '{name}' is not running"
+            }
+
+        pid = browser_info.get('pid')
+        if not pid:
+            return {
+                "success": False,
+                "error": f"No PID found for browser '{name}'"
+            }
+    else:
+        # Single browser
+        if data.get('status') != 'running':
+            return {
+                "success": False,
+                "error": "Browser is not running"
+            }
+
+        pid = data.get('pid')
+        if not pid:
+            return {
+                "success": False,
+                "error": "No PID found for browser"
+            }
+
+    # Activate the window by PID
+    success = activate_window_by_pid(pid)
+    window_title = get_window_title_by_pid(pid)
+
+    return {
+        "success": success,
+        "pid": pid,
+        "window_title": window_title
+    }
 
 
 if __name__ == "__main__":

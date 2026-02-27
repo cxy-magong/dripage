@@ -36,7 +36,8 @@ from cli.browser import (
     get_browser_status,
     get_cdp_url,
     verify_cdp_connection,
-    get_page_object
+    get_page_object,
+    activate_browser
 )
 from cli.capture import (
     NetworkCapture,
@@ -442,6 +443,34 @@ def browser_verify():
     else:
         echo("✗ CDP connection failed")
         echo("  Make sure browser is running with CDP enabled")
+
+
+@browser.command(name='activate')
+@click.option('--name', help='Browser name to activate. If not specified, activates current browser')
+def browser_activate(name: Optional[str] = None):
+    """Activate browser window (bring to foreground).
+
+    This command brings the browser window to the foreground on Windows.
+    Useful for identifying which window corresponds to which browser instance.
+
+    Examples:
+        dripage browser activate              # Activate current browser
+
+        dripage browser activate --name browser1
+
+        dripage browser activate --name worker_9321
+    """
+    result = activate_browser(name=name)
+
+    if result['success']:
+        echo()
+        echo(f"✓ Browser window activated successfully")
+        if result.get('window_title'):
+            echo(f"  Window: {result['window_title']}")
+        echo(f"  PID: {result['pid']}")
+    else:
+        echo(style(f"✗ {result.get('error', 'Failed to activate window')}", fg='red', bold=True))
+        sys.exit(1)
 
 
 # ==================== Capture Commands ====================
