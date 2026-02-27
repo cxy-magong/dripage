@@ -139,6 +139,73 @@ def get_screenshot(full_page: bool = True, save: bool = True) -> str:
         return json.dumps({"status": "error", "message": error_msg}, ensure_ascii=False, indent=2)
 
 
+def get_html(url: Optional[str] = None, save: bool = False, tab_id: Optional[str] = None) -> str:
+    """
+    Get page content as HTML.
+
+    Args:
+        url: Page URL to navigate to. If None, gets current page.
+        save: Whether to save to file. Default False (return content only).
+        tab_id: Tab ID or index to operate on. If None, uses current page.
+
+    Returns:
+        JSON string with HTML content and file path.
+    """
+    try:
+        from tools.tab_manager import get_tab_object
+        from tools.agent_tools import generate_timestamp
+
+        config = get_current_config()
+        if tab_id is not None:
+            try:
+                tab_id_int = int(tab_id) if tab_id.isdigit() else tab_id
+                page, tab_info = get_tab_object(tab_id_int)
+            except Exception as e:
+                page = get_page_object()
+        else:
+            page = get_page_object()
+
+        if url:
+            page.get(url)
+            echo(f"Navigated to: {url}")
+
+        html_content = page.html
+
+        if save:
+            from tools.agent_tools import generate_timestamp
+            timestamp = generate_timestamp()
+            output_dir = Path(config.output.get('directory', 'output/data'))
+
+            page_data_dir = output_dir / 'page_data'
+            page_data_dir.mkdir(exist_ok=True)
+
+            filename = f"page_{timestamp}.html"
+            filepath = page_data_dir / filename
+
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+
+            return json.dumps({
+                "status": "success",
+                "url": page.url,
+                "title": page.title,
+                "file": str(filepath),
+                "content": html_content
+            }, ensure_ascii=False, indent=2)
+        else:
+            return json.dumps({
+                "status": "success",
+                "url": page.url,
+                "title": page.title,
+                "content": html_content
+            }, ensure_ascii=False, indent=2)
+
+    except Exception as e:
+        error_msg = f"Failed to get HTML: {str(e)}"
+        echo(f"✗ {error_msg}")
+        return json.dumps({"status": "error", "message": error_msg}, ensure_ascii=False, indent=2)
+
+
 def analyze_vision(query: str, image_path: Optional[str] = None, save_file: bool = False) -> str:
     """
     Analyze page screenshot using vision model.

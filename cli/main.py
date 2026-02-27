@@ -48,6 +48,7 @@ from cli.capture import (
 from cli.page import (
     get_markdown,
     get_screenshot,
+    get_html,
     analyze_vision
 )
 from cli.location import (
@@ -71,193 +72,194 @@ def cli():
 
 
 # ==================== Config Commands ====================
+# TODO: Config commands temporarily disabled - may be removed in future
 
-@cli.group()
-def config():
-    """Configuration management commands."""
-    pass
-
-
-@config.command(name='set')
-@click.argument('name', required=False)
-@click.option('--set-default', is_flag=True, help='Set as default configuration')
-def config_set_session(name: Optional[str] = None, set_default: bool = False):
-    """Set or create a session configuration.
-
-    Examples:
-        dripage config set my-session --set-default
-
-        dripage config set dev
-    """
-    manager = ConfigManager()
-
-    if name:
-        if set_default:
-            # Save current config as default
-            current_config = manager.load_config()
-            manager.save_config(current_config)
-            echo(f"✓ Set current configuration as default")
-            echo(f"  Browser: {current_config.browser.name} @ {current_config.browser.address}")
-        else:
-            # Create new session
-            from config.settings import get_current_config
-            session_config = get_current_config()
-            manager.save_session(name, session_config)
-            manager.set_current_session(name)
-            echo(f"✓ Created session '{name}'")
-            echo(f"  Browser: {session_config.browser.name} @ {session_config.browser.address}")
-    else:
-        # Show current config
-        current_config = manager.load_config()
-        echo("Current Configuration:")
-        echo(f"  Browser: {style(fg='cyan')}{current_config.browser.name} @ {current_config.browser.address}")
-        echo(f"  Vision: {style(fg='cyan')}{current_config.vision.model}")
-        echo(f"  Capture: {style(fg='green' if current_config.capture.enabled else 'red')}{current_config.capture.enabled}")
-        echo()
-        echo(f"Config file: {DEFAULT_CONFIG_FILE}")
-        echo(f"Session file: {SESSION_CONFIG_FILE}")
+# @cli.group()
+# def config():
+#     """Configuration management commands."""
+#     pass
 
 
-@config.command(name='list')
-def list_sessions():
-    """List all available sessions."""
-    manager = ConfigManager()
-    sessions = manager.list_sessions()
-
-    if not sessions:
-        echo("ℹ️  No sessions found")
-        return
-
-    echo("Available Sessions:")
-    echo()
-    for session in sessions:
-        session_id = session.get('session_id', 'default')
-        browser = session.get('browser', {})
-        echo(f"  {style(fg='cyan')}{session_id}:")
-        echo(f"    Browser: {browser.get('name', 'default')} @ {browser.get('address', 'N/A')}")
-
-
-@config.command(name='use')
-@click.argument('name')
-def use_session(name: str):
-    """Switch to a session configuration.
-
-    Example:
-        dripage config use dev
-    """
-    manager = ConfigManager()
-    sessions = manager.list_sessions()
-    session_ids = [s.get('session_id') for s in sessions]
-
-    if name not in session_ids:
-        echo(f"✗ Session '{name}' not found")
-        echo(f"  Available sessions: {', '.join(session_ids)}")
-        sys.exit(1)
-
-    # Switch to session
-    manager.set_current_session(name)
-    echo(f"✓ Switched to session '{name}'")
-
-    # Print current config
-    current_config = manager.load_session(name)
-    if current_config:
-        echo(f"  Browser: {current_config.browser.name} @ {current_config.browser.address}")
-        echo(f"  Vision: {current_config.vision.model}")
-        echo(f"  Capture: {current_config.capture.enabled}")
+# @config.command(name='set')
+# @click.argument('name', required=False)
+# @click.option('--set-default', is_flag=True, help='Set as default configuration')
+# def config_set_session(name: Optional[str] = None, set_default: bool = False):
+#     """Set or create a session configuration.
+# 
+#     Examples:
+#         dripage config set my-session --set-default
+# 
+#         dripage config set dev
+#     """
+#     manager = ConfigManager()
+# 
+#     if name:
+#         if set_default:
+#             # Save current config as default
+#             current_config = manager.load_config()
+#             manager.save_config(current_config)
+#             echo(f"✓ Set current configuration as default")
+#             echo(f"  Browser: {current_config.browser.name} @ {current_config.browser.address}")
+#         else:
+#             # Create new session
+#             from config.settings import get_current_config
+#             session_config = get_current_config()
+#             manager.save_session(name, session_config)
+#             manager.set_current_session(name)
+#             echo(f"✓ Created session '{name}'")
+#             echo(f"  Browser: {session_config.browser.name} @ {session_config.browser.address}")
+#     else:
+#         # Show current config
+#         current_config = manager.load_config()
+#         echo("Current Configuration:")
+#         echo(f"  Browser: {style(fg='cyan')}{current_config.browser.name} @ {current_config.browser.address}")
+#         echo(f"  Vision: {style(fg='cyan')}{current_config.vision.model}")
+#         echo(f"  Capture: {style(fg='green' if current_config.capture.enabled else 'red')}{current_config.capture.enabled}")
+#         echo()
+#         echo(f"Config file: {DEFAULT_CONFIG_FILE}")
+#         echo(f"Session file: {SESSION_CONFIG_FILE}")
 
 
-@config.command(name='reset')
-def reset():
-    """Reset to default configuration."""
-    ConfigManager().save_config(get_default_config())
-    echo("✓ Reset to default configuration")
+# @config.command(name='list')
+# def list_sessions():
+#     """List all available sessions."""
+#     manager = ConfigManager()
+#     sessions = manager.list_sessions()
+# 
+#     if not sessions:
+#         echo("ℹ️  No sessions found")
+#         return
+# 
+#     echo("Available Sessions:")
+#     echo()
+#     for session in sessions:
+#         session_id = session.get('session_id', 'default')
+#         browser = session.get('browser', {})
+#         echo(f"  {style(fg='cyan')}{session_id}:")
+#         echo(f"    Browser: {browser.get('name', 'default')} @ {browser.get('address', 'N/A')}")
 
 
-@config.command(name='show')
-def config_show():
-    """Show current configuration with source information.
-
-    Example:
-        dripage config show
-    """
-    from config.settings import get_current_config, get_config_source
-
-    config = get_current_config()
-    source_info = get_config_source()
-
-    echo("Current Configuration:")
-    echo()
-    echo(f"  Source: {style(source_info['source'], fg='cyan')}")
-    echo(f"    Detail: {source_info['detail']}")
-    echo()
-    echo(f"  Browser: {style(config.browser.name, fg='cyan')} @ {config.browser.address}")
-    echo(f"    App ID: {source_info['app_id']}")
-    echo()
-    echo(f"  Working Directory:")
-    echo(f"    {source_info['cwd']}")
-
-
-@config.command(name='set-user')
-@click.option('--app', help='App ID (e.g., crawler_prod)')
-@click.option('--browser', help='Browser name (e.g., browser1)')
-def config_set_user(app: Optional[str], browser: Optional[str]):
-    """Set user-level app configuration.
-
-    This configuration is stored in ~/.dripage/current_app and will be used
-    when no project config or environment variable is set.
-
-    Examples:
-        dripage config set-user --app crawler_prod --browser browser1
-
-        dripage config set-user --browser browser2
-    """
-    if not browser:
-        echo(style("✗ --browser is required", fg='red'))
-        sys.exit(1)
-
-    import yaml
-
-    home = Path.home()
-    config_path = home / '.dripage'
-    current_app_path = config_path / 'current_app'
-
-    config_path.mkdir(parents=True, exist_ok=True)
-
-    data = {
-        'app_id': app or browser,
-        'browser': browser,
-        'timestamp': datetime.now().isoformat()
-    }
-
-    with open(current_app_path, 'w', encoding='utf-8') as f:
-        yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
-
-    echo(f"✓ User app configuration saved")
-    echo(f"  App ID: {data['app_id']}")
-    echo(f"  Browser: {data['browser']}")
-    echo(f"  Config file: {current_app_path}")
-    echo()
-    echo("ℹ️  This configuration will be used when:")
-    echo("    - No .dripage/config in current directory")
-    echo("    - No DRIPAGE_BROWSER environment variable set")
+# @config.command(name='use')
+# @click.argument('name')
+# def use_session(name: str):
+#     """Switch to a session configuration.
+# 
+#     Example:
+#         dripage config use dev
+#     """
+#     manager = ConfigManager()
+#     sessions = manager.list_sessions()
+#     session_ids = [s.get('session_id') for s in sessions]
+# 
+#     if name not in session_ids:
+#         echo(f"✗ Session '{name}' not found")
+#         echo(f"  Available sessions: {', '.join(session_ids)}")
+#         sys.exit(1)
+# 
+#     # Switch to session
+#     manager.set_current_session(name)
+#     echo(f"✓ Switched to session '{name}'")
+# 
+#     # Print current config
+#     current_config = manager.load_session(name)
+#     if current_config:
+#         echo(f"  Browser: {current_config.browser.name} @ {current_config.browser.address}")
+#         echo(f"  Vision: {current_config.vision.model}")
+#         echo(f"  Capture: {current_config.capture.enabled}")
 
 
-@config.command(name='clear-user')
-def config_clear_user():
-    """Clear user-level app configuration.
+# @config.command(name='reset')
+# def reset():
+#     """Reset to default configuration."""
+#     ConfigManager().save_config(get_default_config())
+#     echo("✓ Reset to default configuration")
 
-    Example:
-        dripage config clear-user
-    """
-    home = Path.home()
-    current_app_path = home / '.dripage' / 'current_app'
 
-    if current_app_path.exists():
-        current_app_path.unlink()
-        echo("✓ User app configuration cleared")
-        echo(f"  Removed: {current_app_path}")
-    else:
-        echo("ℹ️  No user app configuration found")
+# @config.command(name='show')
+# def config_show():
+#     """Show current configuration with source information.
+# 
+#     Example:
+#         dripage config show
+#     """
+#     from config.settings import get_current_config, get_config_source
+# 
+#     config = get_current_config()
+#     source_info = get_config_source()
+# 
+#     echo("Current Configuration:")
+#     echo()
+#     echo(f"  Source: {style(source_info['source'], fg='cyan')}")
+#     echo(f"    Detail: {source_info['detail']}")
+#     echo()
+#     echo(f"  Browser: {style(config.browser.name, fg='cyan')} @ {config.browser.address}")
+#     echo(f"    App ID: {source_info['app_id']}")
+#     echo()
+#     echo(f"  Working Directory:")
+#     echo(f"    {source_info['cwd']}")
+
+
+# @config.command(name='set-user')
+# @click.option('--app', help='App ID (e.g., crawler_prod)')
+# @click.option('--browser', help='Browser name (e.g., browser1)')
+# def config_set_user(app: Optional[str], browser: Optional[str]):
+#     """Set user-level app configuration.
+# 
+#     This configuration is stored in ~/.dripage/current_app and will be used
+#     when no project config or environment variable is set.
+# 
+#     Examples:
+#         dripage config set-user --app crawler_prod --browser browser1
+# 
+#         dripage config set-user --browser browser2
+#     """
+#     if not browser:
+#         echo(style("✗ --browser is required", fg='red'))
+#         sys.exit(1)
+# 
+#     import yaml
+# 
+#     home = Path.home()
+#     config_path = home / '.dripage'
+#     current_app_path = config_path / 'current_app'
+# 
+#     config_path.mkdir(parents=True, exist_ok=True)
+# 
+#     data = {
+#         'app_id': app or browser,
+#         'browser': browser,
+#         'timestamp': datetime.now().isoformat()
+#     }
+# 
+#     with open(current_app_path, 'w', encoding='utf-8') as f:
+#         yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
+# 
+#     echo(f"✓ User app configuration saved")
+#     echo(f"  App ID: {data['app_id']}")
+#     echo(f"  Browser: {data['browser']}")
+#     echo(f"  Config file: {current_app_path}")
+#     echo()
+#     echo("ℹ️  This configuration will be used when:")
+#     echo("    - No .dripage/config in current directory")
+#     echo("    - No DRIPAGE_BROWSER environment variable set")
+
+
+# @config.command(name='clear-user')
+# def config_clear_user():
+#     """Clear user-level app configuration.
+# 
+#     Example:
+#         dripage config clear-user
+#     """
+#     home = Path.home()
+#     current_app_path = home / '.dripage' / 'current_app'
+# 
+#     if current_app_path.exists():
+#         current_app_path.unlink()
+#         echo("✓ User app configuration cleared")
+#         echo(f"  Removed: {current_app_path}")
+#     else:
+#         echo("ℹ️  No user app configuration found")
 
 
 # ==================== Browser Commands ====================
@@ -581,42 +583,62 @@ def capture_query(limit: int, filter: Optional[str] = None):
 @cli.command(name='get')
 @click.argument('url', required=False)
 @click.option('--save', is_flag=True, help='Save to file')
+@click.option('--format', type=click.Choice(['markdown', 'html', 'screenshot']), default='markdown', help='Output format')
 @click.option('--tab-id', help='Tab ID or index to operate on (default: current page)')
-def page_get(url: Optional[str] = None, save: bool = False, tab_id: Optional[str] = None):
-    """Get page content as markdown.
+def page_get(url: Optional[str] = None, save: bool = False, format: str = 'markdown', tab_id: Optional[str] = None):
+    """Get page content in various formats.
+
+    Supports markdown, html, and screenshot formats.
 
     Examples:
         dripage get http://localhost:3000/sign-up
 
-        dripage get
+        dripage get --format screenshot
 
-        dripage get --save
+        dripage get --format html --save
 
         dripage get --tab-id 0
     """
-    result = get_markdown(url=url, save=save, tab_id=tab_id)
+    if format == 'screenshot':
+        result = get_screenshot(full_page=True, save=True)
+        data = json.loads(result)
+        if data.get('status') == 'success':
+            filepath = Path(data.get('file', 'N/A')).resolve()
+            echo(f"✓ Screenshot saved to: {filepath}")
+        else:
+            echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
+        return
+
+    elif format == 'html':
+        result = get_html(url=url, save=save, tab_id=tab_id)
+    else:
+        result = get_markdown(url=url, save=save, tab_id=tab_id)
 
     data = json.loads(result)
     if data.get('status') == 'success':
         echo(f"✓ Page retrieved successfully")
         echo(f"  URL: {data.get('url', 'N/A')}")
         echo(f"  Title: {data.get('title', 'N/A')}")
+        echo(f"  Format: {format}")
 
-        # Get content
         content = data.get('content', '')
 
-        # Show content with truncation
+        if format == 'screenshot':
+            filepath = Path(data.get('file', 'N/A')).resolve()
+            echo(f"✓ Saved to: {filepath}")
+            return
+
         if len(content) > 3000:
-            # Show first 3000 chars
             echo()
             echo(content[:3000])
             echo()
             echo(f"⚠️  Content truncated ({len(content)} chars > 3000 limit)")
 
-            # Auto-save if not already saved
             if 'file' not in data:
-                # Re-fetch with save=True to auto-save long content
-                save_result = get_markdown(url=None if url else None, save=True, tab_id=tab_id)
+                if format == 'markdown':
+                    save_result = get_markdown(url=None if url else None, save=True, tab_id=tab_id)
+                else:
+                    save_result = get_html(url=None if url else None, save=True, tab_id=tab_id)
                 save_data = json.loads(save_result)
                 if save_data.get('status') == 'success' and 'file' in save_data:
                     filepath = Path(save_data.get('file', 'N/A')).resolve()
@@ -624,37 +646,15 @@ def page_get(url: Optional[str] = None, save: bool = False, tab_id: Optional[str
                 else:
                     echo(f"   Failed to save content automatically")
             else:
-                # Already saved, show absolute path
                 filepath = Path(data.get('file', 'N/A')).resolve()
                 echo(f"   Full content saved to: {filepath}")
         else:
-            # Show full content
             echo()
             echo(content)
 
-        # Show saved path if explicitly requested
         if save and 'file' in data:
-            # Get absolute path
             filepath = Path(data.get('file', 'N/A')).resolve()
             echo(f"✓ Saved to: {filepath}")
-    else:
-        echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
-
-
-@cli.command(name='screenshot')
-def page_screenshot():
-    """Take a screenshot of current page.
-
-    Example:
-        dripage screenshot
-    """
-    result = get_screenshot(full_page=True, save=True)
-
-    data = json.loads(result)
-    if data.get('status') == 'success':
-        echo(f"✓ Screenshot taken successfully")
-        echo(f"  Saved to: {data.get('file', 'N/A')}")
-        echo(f"  Full page: {data.get('full_page', True)}")
     else:
         echo(style(f"✗ {data.get('message', 'Unknown error')}", fg='red', bold=True))
 
