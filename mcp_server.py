@@ -432,7 +432,8 @@ def locate_element_tool(
     Example:
         locate_element_tool("search input box") -> returns coordinates of search box
     """
-    result = locate_element.invoke({"query": query, "image_path": image_path, "tab_id": tab_id})
+    # Call the tool function directly with runtime=None (MCP doesn't support ToolRuntime)
+    result = locate_element.func(query, image_path=image_path, tab_id=tab_id, runtime=None)
     # Handle Command object - extract update dict for serialization
     serializable_result = serialize_result(result)
     return json.dumps(serializable_result, ensure_ascii=False, indent=2)
@@ -450,19 +451,6 @@ def browser_list_tabs_tool() -> str:
     from tools.tab_manager import list_all_tabs
     result = list_all_tabs()
     return json.dumps(result, ensure_ascii=False, indent=2)
-
-
-@mcp.tool
-def browser_switch_tab_tool(tab_index: int) -> str:
-    """Switch to a specific tab by index.
-
-    Args:
-        tab_index: The index of tab to switch to (0-based)
-
-    Returns:
-        Success message with new tab title and URL
-    """
-    return switch_tab(tab_index)
 
 
 @mcp.tool
