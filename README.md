@@ -24,6 +24,104 @@
 
 ---
 
+## 快速开始
+
+### 1. 安装
+
+```bash
+# 克隆仓库
+git clone <repository-url>
+cd dripage
+
+# 安装依赖（需要 Python 3.13+）
+uv sync
+
+# 设置环境变量
+cp .env.example .env
+# 编辑 .env 并填入你的 API 密钥
+```
+
+### 全局安装（可选）
+
+```bash
+# Windows: 运行安装脚本
+install.cmd
+
+# Linux/Mac: 运行安装脚本
+bash install.sh
+
+# 安装后，可在任何位置直接使用 dripage 命令
+dripage --help
+```
+
+### 2. 配置环境
+
+编辑 `.env` 文件并添加所需的 API 密钥：
+
+```bash
+# 视觉分析必需
+ZAI_API_KEY="your_zhipuai_api_key_here"
+```
+
+### 3. 🤖 与 AI 协作（OpenCode、Claude 等）🚀
+
+安装好依赖和全局安装之后，就可以直接让 OpenCode 等 AI 工具帮你使用 Dripage 了！
+
+#### 使用 OpenCode 对话
+
+在 OpenCode 等支持 AI 对话的工具中，你可以直接要求使用 `dripage` 命令：
+
+> "导航到 https://github.com 并截取屏幕截图"
+
+> "找到搜索框并输入 'test'"
+
+> "获取页面内容为 markdown"
+
+> "分析这个页面有什么内容"
+
+> "点击坐标 (100, 200) 处的按钮"
+
+AI 会自动识别并执行相应的 `dripage` 命令，无需你手动输入复杂的命令行参数。
+
+### 4. 启动浏览器
+
+```bash
+# 使用默认配置启动浏览器
+uv run .\cli.py browser start
+
+# 或使用自定义配置启动
+uv run .\cli.py browser start --address 127.0.0.1:19222
+```
+
+### 5. 常用命令
+
+```bash
+# 导航到网页
+uv run .\cli.py tab new --url https://example.com
+
+# 获取页面内容为 markdown
+uv run .\cli.py get
+
+# 截取屏幕截图
+uv run .\cli.py screenshot
+
+# 使用视觉分析页面
+uv run .\cli.py vision "这个页面上有什么？"
+
+# 在坐标处点击
+uv run .\cli.py click 100 200
+
+# 列出标签页
+uv run .\cli.py tab list
+
+# 获取帮助
+uv run .\cli.py --help
+```
+
+完整的 CLI 文档请参阅 [README_CLI.md](README_CLI.md)。
+
+---
+
 ## 🖥️ 图形用户界面 (GUI) 🆕
 
 Dripage 现在提供了可视化的浏览器管理 Dashboard，方便通过图形界面管理多个浏览器实例。
@@ -72,10 +170,6 @@ python start_gui.py --help
 
 - [GUI 日志系统文档](GUI/README_LOGGING.md) - 详细的日志使用指南
 - [多浏览器配置指南](docs/MULTI_BROWSER_IMPLEMENTATION.md) - 浏览器配置说明
-
----
-
-## 快速开始 (CLI)
 
 ### 1. 安装
 
