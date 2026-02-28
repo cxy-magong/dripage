@@ -6,6 +6,7 @@ Enhanced with error handling, logging, and additional features.
 from typing import List, Optional, Literal
 from utils.drission_page import create_browser
 from utils.logu import logger
+import json
 
 
 def get_browser():
@@ -20,7 +21,6 @@ def list_tabs() -> str:
         JSON string with list of tabs including tab_id, title, url, index, is_current
     """
     from tools.tab_manager import list_all_tabs
-    import json
 
     try:
         result = list_all_tabs()
@@ -43,7 +43,6 @@ def switch_tab(tab_index: int) -> str:
     Returns:
         Success message with new tab title and URL
     """
-    import json
     try:
         logger.info(f"Switching to tab {tab_index}")
         browser = get_browser()
@@ -150,7 +149,6 @@ def new_tab(url: Optional[str] = None) -> str:
     Returns:
         Success message with the new tab title and URL
     """
-    import json
     import time
     try:
         url_info = f" with URL: {url}" if url else ""
@@ -199,12 +197,11 @@ def close_tab(tab_index: Optional[int] = None) -> str:
 
     Args:
         tab_index: The index of tab to close (0-based).
-                   If not provided, closes the current tab.
+                   If not provided, closes current tab.
 
     Returns:
         Success message
     """
-    import json
     import time
     try:
         logger.info(f"Closing tab{f' at index {tab_index}' if tab_index is not None else ' (current tab)'}")
@@ -290,12 +287,11 @@ def close_tab(tab_index: Optional[int] = None) -> str:
 
 
 def get_current_tab_info() -> str:
-    """Get information about the current tab.
+    """Get information about current tab.
 
     Returns:
         JSON string with current tab title and URL
     """
-    import json
     try:
         logger.info("Getting current tab info")
         browser = get_browser()

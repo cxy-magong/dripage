@@ -16,15 +16,46 @@
 #   python -m utils.chrome_manager close --name browser1
 
 browsers:
+  # ==================== Internal Browsers (Local) ====================
+  # These browsers use INI files in config/browser/ directory
+
   - name: browser1
     ini_file: config/browser/browser1.ini
     description: "Default browser on port 19222"
 
   - name: browser2
     ini_file: config/browser/browser2.ini
-    description: "Second browser on port 19223"
+    description: "Second browser on port 19000"
 
-  # Add more browsers as needed:
-  # - name: browser3
-  #   ini_file: config/browser/browser3.ini
+  # ==================== Worker Browsers (External) ====================
+  # These browsers use INI files from external project:
+  # G:\code\amazone\copywriting_production\config\dp_conf
+
+  - name: worker_9321
+    ini_file: "G:\\code\\amazone\\copywriting_production\\config\\dp_conf\\9321.ini"
+    description: "Worker browser on port 9321 (proxy: localhost:8851)"
+
+  - name: worker_9322
+    ini_file: "G:\\code\\amazone\\copywriting_production\\config\\dp_conf\\9322.ini"
+    description: "Worker browser on port 9322 (proxy: localhost:8851)"
+
+  - name: worker_9323
+    ini_file: "G:\\code\\amazone\\copywriting_production\\config\\dp_conf\\9323.ini"
+    description: "Worker browser on port 9323 (proxy: localhost:8851)"
+
+  - name: worker_9324
+    ini_file: "G:\\code\\amazone\\copywriting_production\\config\\dp_conf\\9324.ini"
+    description: "Worker browser on port 9324 (proxy: localhost:8851)"
+
+  - name: worker_9325
+    ini_file: "G:\\code\\amazone\\copywriting_production\\config\\dp_conf\\9325.ini"
+    description: "Worker browser on port 9325 (proxy: localhost:8851)"
+
+  - name: browser3
+    ini_file: config/browser/browser3.ini
+    description: "Third browser on port 19223"
+
+  # ==================== Add More Browsers ====================
+  # - name: browser4
+  #   ini_file: config/browser/browser4.ini
   #   description: "Custom browser configuration"

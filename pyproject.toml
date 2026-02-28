@@ -1,9 +1,10 @@
 [project]
 name = "dripage"
 version = "0.1.0"
-description = "Add your description here"
+description = "Browser automation and packet capture tool"
 readme = "README.md"
 requires-python = ">=3.13"
+
 dependencies = [
     "click>=8.3.1",
     "drissionpage>=4.1.1.2",
@@ -22,17 +23,10 @@ dependencies = [
     "pillow>=12.1.0",
     "psutil>=7.2.1",
     "pyro4>=4.82",
+    "pywin32>=311",
     "pyyaml>=6.0.3",
     "sniffio>=1.3.1",
     "websockets>=12.0",
     "zai-sdk>=0.0.3.4",
     "zhipuai>=2.1.5.20250825",
 ]
-
-[project.scripts]
-dripage-mcp = "mcp_server:main"
-cdp-proxy = "cdp_proxy.start_proxy:main"
-test-cdp-proxy = "cdp_proxy.test_proxy:main"
-chrome-rpc-server = "services.chrome_rpc.start_server:main"
-chrome-rpc-client = "services.chrome_rpc.interactive_client:main"
-start-chrome-http = "uv run python services/chrome_http/server.py"

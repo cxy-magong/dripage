@@ -14,6 +14,7 @@ from tools.browser_tools import (
     browser_input,
     browser_press_key,
     browser_scroll,
+    get_element_at_position,
     get_config as get_browser_config,
     get_browser,
 )
@@ -63,6 +64,7 @@ __all__ = [
     'browser_input',
     'browser_press_key',
     'browser_scroll',
+    'get_element_at_position',
     'get_browser_config',
     'get_browser',
     # 标签页管理工具
@@ -108,6 +110,7 @@ def get_all_tools():
         'browser_input': browser_input,
         'browser_press_key': browser_press_key,
         'browser_scroll': browser_scroll,
+        'get_element_at_position': get_element_at_position,
         'get_browser_config': get_browser_config,
         'get_browser': get_browser,
         # Agent 工具
@@ -137,6 +140,7 @@ def get_browser_tools():
         'browser_input': browser_input,
         'browser_press_key': browser_press_key,
         'browser_scroll': browser_scroll,
+        'get_element_at_position': get_element_at_position,
     }
 
 

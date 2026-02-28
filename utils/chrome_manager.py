@@ -58,6 +58,28 @@ class ChromeManager:
             print(f"Error loading browser config: {e}", file=sys.stderr)
             return None
 
+    def get_defined_browsers(self) -> list:
+        """
+        Get list of browser names defined in config/browsers.yaml.
+
+        Returns:
+            List of browser names
+        """
+        if not BROWSERS_CONFIG_FILE.exists():
+            return []
+
+        try:
+            with open(BROWSERS_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+
+            if not config or 'browsers' not in config:
+                return []
+
+            return [b.get('name') for b in config['browsers'] if b.get('name')]
+        except Exception as e:
+            print(f"Error loading browsers config: {e}", file=sys.stderr)
+            return []
+
     def start_browser(self, name: Optional[str] = None, address: str = "127.0.0.1:19222",
                      user_data_dir: str = "", browser_path: str = "") -> Dict[str, Any]:
         """
@@ -104,6 +126,8 @@ class ChromeManager:
             try:
                 # Load configuration from INI file using ChromiumOptions
                 chrome_options = ChromiumOptions(ini_path=ini_file)
+                # Set to connect to existing browser only (WSL compatible)
+                chrome_options.existing_only = True
             except Exception as e:
                 return {
                     "success": False,
@@ -138,6 +162,8 @@ class ChromeManager:
                 chrome_options.set_user_data_path(user_data_dir)
             if browser_path:
                 chrome_options.set_browser_path(browser_path)
+            # Set to connect to existing browser only (WSL compatible)
+            chrome_options.existing_only = True
 
         try:
             # Create browser instance
@@ -362,29 +388,32 @@ class ChromeManager:
 
         # Return all browsers status
         browsers_status = {}
+        defined_browsers = self.get_defined_browsers()
 
         if is_old_format:
-            # Old format: return single "default" browser
-            if state.get("status") == "running":
-                if self._is_running(state.get("address", "127.0.0.1:19222")):
-                    browsers_status["default"] = {
-                        "status": "running",
-                        "cdp_url": state.get("cdp_url", ""),
-                        "address": state.get("address", ""),
-                        "pid": state.get("pid"),
-                        "start_time": state.get("start_time", "")
-                    }
+            # Old format: return single "default" browser (only if no defined browsers)
+            if not defined_browsers:
+                if state.get("status") == "running":
+                    if self._is_running(state.get("address", "127.0.0.1:19222")):
+                        browsers_status["default"] = {
+                            "status": "running",
+                            "cdp_url": state.get("cdp_url", ""),
+                            "address": state.get("address", ""),
+                            "pid": state.get("pid"),
+                            "start_time": state.get("start_time", "")
+                        }
+                    else:
+                        # Browser not actually running, update state
+                        state["status"] = "stopped"
+                        state["stop_time"] = datetime.now().isoformat()
+                        browsers_status["default"] = {"status": "stopped"}
+                        self._save_state(state)
                 else:
-                    # Browser not actually running, update state
-                    state["status"] = "stopped"
-                    state["stop_time"] = datetime.now().isoformat()
-                    browsers_status["default"] = {"status": "stopped"}
-                    self._save_state(state)
-            else:
-                browsers_status["default"] = {"status": state.get("status", "unknown")}
+                    browsers_status["default"] = {"status": state.get("status", "unknown")}
         else:
-            # New format: return all named browsers
-            for browser_name, browser_state in state.items():
+            # New format: return only browsers defined in browsers.yaml
+            for browser_name in defined_browsers:
+                browser_state = state.get(browser_name)
                 if isinstance(browser_state, dict) and browser_state.get("status") == "running":
                     if self._is_running(browser_state.get("address", "127.0.0.1:19222")):
                         browsers_status[browser_name] = {
@@ -401,7 +430,10 @@ class ChromeManager:
                         browsers_status[browser_name] = {"status": "stopped"}
                         self._save_state(state)
                 elif isinstance(browser_state, dict):
-                    browsers_status[browser_name] = {"status": browser_state.get("status", "unknown")}
+                    browsers_status[browser_name] = {"status": browser_state.get("status", "stopped")}
+                else:
+                    # Browser not in state file, show as stopped
+                    browsers_status[browser_name] = {"status": "stopped"}
 
         return {
             "success": True,
@@ -463,6 +495,9 @@ class ChromeManager:
         # Legacy mode: get default browser CDP URL
         # Find any running browser
         for browser_name, browser_state in state.items():
+            # Skip non-dictionary entries (e.g., 'total', 'running' counters)
+            if not isinstance(browser_state, dict):
+                continue
             if browser_state.get("status") == "running":
                 if self._is_running(browser_state.get("address", "127.0.0.1:19222")):
                     return {

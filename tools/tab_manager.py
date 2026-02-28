@@ -9,6 +9,7 @@ Tab Manager - 标签页管理通用工具
 import sys
 from pathlib import Path
 from typing import Optional, Union, Dict, Tuple, Any
+import json
 
 # 添加项目目录到路径
 project_dir = Path(__file__).resolve().parent.parent
@@ -163,7 +164,6 @@ def list_all_tabs() -> Dict:
             "count": N
         }
     """
-    import json
 
     try:
         browser = create_browser()
