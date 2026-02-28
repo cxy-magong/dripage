@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 import yaml
 import traceback
+import platform
+import subprocess
 
 # Add project root to sys.path
 project_root = Path(__file__).resolve().parent.parent
@@ -37,18 +39,20 @@ except Exception as e:
 class BrowserCard(ttk.LabelFrame):
     """Browser card widget for displaying browser info and controls."""
 
-    def __init__(self, parent, root: tk.Tk, browser_name: str, description: str,
+    def __init__(self, parent, root: tk.Tk, browser_name: str, description: str, config_path: str,
                  on_start: callable, on_stop: callable, on_activate: callable,
-                 on_copy_config: callable, **kwargs):
+                 on_copy_config_path: callable, on_open_config_editor: callable, **kwargs):
         super().__init__(parent, text=browser_name, padding="15", **kwargs)
 
         self.root = root  # Store root for main thread UI updates
         self.browser_name = browser_name
         self.description = description
+        self.config_path = config_path  # Store config path
         self.on_start = on_start
         self.on_stop = on_stop
         self.on_activate = on_activate
-        self.on_copy_config = on_copy_config
+        self.on_copy_config_path = on_copy_config_path
+        self.on_open_config_editor = on_open_config_editor
 
         self.status = "stopped"
         self.setup_ui()
@@ -78,10 +82,11 @@ class BrowserCard(ttk.LabelFrame):
         )
         self.status_label.grid(row=1, column=1, padx=(0, 10))
 
-        # Info label (CDP URL, PID, etc.)
+        # Info label (CDP URL, PID, etc. or config path)
+        config_info = self._format_config_path(self.config_path)
         self.info_label = ttk.Label(
             self,
-            text="未运行",
+            text=config_info,
             font=("Consolas", 8),
             foreground="#888888",
             wraplength=200
@@ -115,14 +120,52 @@ class BrowserCard(ttk.LabelFrame):
         )
         activate_btn.pack(side=tk.LEFT, padx=2)
 
-        # Copy config button
-        copy_btn = ttk.Button(
+        # Copy config path button
+        copy_path_btn = ttk.Button(
             button_frame,
-            text="复制配置",
-            width=12,
-            command=lambda n=self.browser_name: self.on_copy_config(n)
+            text="复制路径",
+            width=8,
+            command=lambda n=self.browser_name: self.on_copy_config_path(n)
         )
-        copy_btn.pack(side=tk.LEFT, padx=2)
+        copy_path_btn.pack(side=tk.LEFT, padx=2)
+
+        # Open config editor button
+        open_config_btn = ttk.Button(
+            button_frame,
+            text="编辑配置",
+            width=8,
+            command=lambda n=self.browser_name: self.on_open_config_editor(n)
+        )
+        open_config_btn.pack(side=tk.LEFT, padx=2)
+
+    def _format_config_path(self, config_path: str) -> str:
+        """
+        Format config path for display.
+        Shows absolute path for both relative and absolute config paths.
+        """
+        if not config_path:
+            return "未运行"
+
+        # Convert to absolute path
+        path_obj = Path(config_path)
+
+        # If relative, convert to absolute
+        if not path_obj.is_absolute():
+            absolute_path = (project_root / path_obj).resolve()
+        else:
+            absolute_path = path_obj.resolve()
+
+        # Format for display (shorten if too long)
+        path_str = str(absolute_path)
+
+        # Show "..." if path is too long
+        if len(path_str) > 40:
+            # Show start and end of path
+            start = path_str[:15]
+            end = path_str[-20:]
+            return f"配置: {start}...{end}"
+        else:
+            return f"配置: {path_str}"
 
     def _on_action_click(self):
         """Handle action button click (start/stop) - explicit method."""
@@ -152,7 +195,9 @@ class BrowserCard(ttk.LabelFrame):
             self.status_frame.config(bg="#d0d0d0")
             self.status_label.config(text="已停止", foreground="#666666")
             self.action_button.config(text="启动", bg="#4CAF50")
-            self.info_label.config(text="未运行")
+            # Show config path when stopped
+            config_info = self._format_config_path(self.config_path)
+            self.info_label.config(text=config_info)
 
     def update_status(self, status: str, info: Optional[Dict[str, Any]] = None):
         """Update browser status display - calls on main thread."""
@@ -286,10 +331,12 @@ class BrowserDashboard:
                 root=self.root,  # Pass root for main thread UI updates
                 browser_name=name,
                 description=description,
+                config_path=ini_file,  # Pass config file path
                 on_start=self._start_browser,
                 on_stop=self._stop_browser,
                 on_activate=self._activate_browser,
-                on_copy_config=self._copy_config
+                on_copy_config_path=self._copy_config_path,
+                on_open_config_editor=self._open_config_editor
             )
 
             # Store config data in card
@@ -448,34 +495,95 @@ class BrowserDashboard:
         """Public method for activating browser."""
         self._activate_browser(browser_name)
 
-    def _copy_config(self, browser_name: str):
-        """Copy browser configuration to clipboard - wrapper method."""
-        print(f"Copy config button clicked for: {browser_name}")
+    def _get_absolute_config_path(self, config_path: str) -> str:
+        """
+        Convert config path to absolute path.
+
+        Handles both relative and absolute paths:
+        - Relative: config/browser/browser1.ini -> project_root/config/browser/browser1.ini
+        - Absolute: G:\\code\\amazone\\...\\config\\dp_conf\\9321.ini
+        """
+        if not config_path:
+            return config_path
+
+        # Convert to Path object
+        path_obj = Path(config_path)
+
+        # If already absolute, return it
+        if path_obj.is_absolute():
+            # Normalize path separators for current OS
+            return str(path_obj)
+
+        # If relative, convert to absolute based on project root
+        absolute_path = project_root / path_obj
+
+        # Normalize and return
+        return str(absolute_path.resolve())
+
+    def _copy_config_path(self, browser_name: str):
+        """Copy browser config file path to clipboard."""
+        print(f"Copy config path button clicked for: {browser_name}")
         if browser_name in self.browser_cards:
             card = self.browser_cards[browser_name]
             config_data = card.config_data
+            config_path = config_data.get('ini_file', '')
 
-            # Format config for copying
-            config_text = f"""浏览器: {browser_name}
-描述: {config_data.get('description', '')}
-INI 文件: {config_data.get('ini_file', '')}
-"""
+            if not config_path:
+                messagebox.showwarning("警告", f"{browser_name} 没有配置文件路径")
+                return
+
+            # Convert to absolute path
+            absolute_path = self._get_absolute_config_path(config_path)
 
             try:
                 self.root.clipboard_clear()
-                self.root.clipboard_append(config_text)
+                self.root.clipboard_append(absolute_path)
                 if hasattr(self, 'status_bar'):
-                    self.root.after(0, lambda: self._update_status_bar(f"✓ 已复制 {browser_name} 的配置"))
-                messagebox.showinfo("配置已复制", f"已将 {browser_name} 的配置复制到剪贴板！")
+                    self.root.after(0, lambda: self._update_status_bar(f"✓ 已复制 {browser_name} 的配置路径"))
+                print(f"Config path copied: {absolute_path}")
             except Exception as e:
-                print(f"Error copying config: {e}")
+                print(f"Error copying config path: {e}")
                 if hasattr(self, 'status_bar'):
-                    self.root.after(0, lambda: self._update_status_bar(f"✗ 复制配置失败: {str(e)}"))
-                messagebox.showerror("错误", f"复制配置失败: {str(e)}")
+                    self.root.after(0, lambda: self._update_status_bar(f"✗ 复制配置路径失败: {str(e)}"))
+                messagebox.showerror("错误", f"复制配置路径失败: {str(e)}")
 
-    def copy_config(self, browser_name: str):
-        """Public method for copying config."""
-        self._copy_config(browser_name)
+    def _open_config_editor(self, browser_name: str):
+        """Open config file in default editor."""
+        print(f"Open config editor button clicked for: {browser_name}")
+        if browser_name in self.browser_cards:
+            card = self.browser_cards[browser_name]
+            config_data = card.config_data
+            config_path = config_data.get('ini_file', '')
+
+            if not config_path:
+                messagebox.showwarning("警告", f"{browser_name} 没有配置文件路径")
+                return
+
+            # Convert to absolute path
+            absolute_path = self._get_absolute_config_path(config_path)
+
+            # Check if file exists
+            if not Path(absolute_path).exists():
+                messagebox.showerror("错误", f"配置文件不存在:\n{absolute_path}")
+                return
+
+            try:
+                # Open config file with default editor
+                if platform.system() == 'Windows':
+                    os.startfile(absolute_path)
+                elif platform.system() == 'Darwin':  # macOS
+                    subprocess.run(['open', absolute_path])
+                else:  # Linux
+                    subprocess.run(['xdg-open', absolute_path])
+
+                if hasattr(self, 'status_bar'):
+                    self.root.after(0, lambda: self._update_status_bar(f"✓ 已打开 {browser_name} 的配置文件"))
+                print(f"Config file opened: {absolute_path}")
+            except Exception as e:
+                print(f"Error opening config file: {e}")
+                if hasattr(self, 'status_bar'):
+                    self.root.after(0, lambda: self._update_status_bar(f"✗ 打开配置文件失败: {str(e)}"))
+                messagebox.showerror("错误", f"打开配置文件失败: {str(e)}")
 
     def refresh_status(self):
         """Refresh all browser statuses."""

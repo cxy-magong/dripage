@@ -104,7 +104,7 @@ def main():
     info("=" * 60)
 
     try:
-        from GUI.GUI_dashboard_fixed import main as gui_main
+        from GUI.GUI_dashboard import main as gui_main
 
         # 启动GUI
         debug("正在初始化GUI...")
