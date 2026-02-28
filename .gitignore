@@ -26,3 +26,5 @@ test_project/
 *.tmp
 *.bak
 cleanup.py
+# Environment variables
+.env
