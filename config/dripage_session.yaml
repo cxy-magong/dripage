@@ -1,0 +1,20 @@
+browser:
+  address: 127.0.0.1:19222
+  browser_path: ''
+  headless: false
+  ini_file: ''
+  name: default
+  user_data_dir: ''
+capture:
+  enabled: false
+  filters: {}
+  output_dir: G:\code\agent-use\dripage\output\packets
+  save_all: false
+current_session: browser2
+output:
+  directory: G:\code\agent-use\dripage\output\data
+session_id: browser2
+vision:
+  max_tokens: 1024
+  model: glm-4v-flash
+  temperature: 0.7

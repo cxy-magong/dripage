@@ -1,139 +1,208 @@
 # Dripage 🚀
 
-Browser automation and vision analysis via MCP (Model Context Protocol).
+[English](README_EN.md) | 简体中文
 
-## Features
+浏览器自动化工具，支持 CLI 命令行、MCP 服务器集成和视觉分析功能。
 
-- 🌐 **Browser Automation**: Navigate, interact with web pages
-- 📄 **Content Extraction**: Save pages as Markdown, HTML, images, or MHTML
-- 👁️ **Vision Analysis**: Analyze screenshots using GLM-4V vision model
-- 🔍 **Element Location**: Find and locate elements using vision + coordinates
+## 特性
 
-## Quick Start
+- 🌐 **浏览器自动化**：通过 CLI 导航和交互网页
+- 📄 **内容提取**：将网页保存为 Markdown、HTML、图片或 MHTML
+- 👁️ **视觉分析**：使用 GLM-4V 视觉模型分析截图
+- 🔍 **元素定位**：使用视觉和坐标查找定位元素
+- 📡 **网络数据包捕获**：后台网络监控，支持过滤功能
+- 🔌 **MCP 服务器**：支持 AI 代理的模型上下文协议集成
 
-### 1. Start MCP Server
+## 核心优势
 
-**HTTP Mode (for testing):**
-```bash
-PYTHONPATH="G:\code\agent-use\dripage" uv run mcp_server.py http
-```
+与同类项目（如 Agent Browser Playwright 等浏览器框架）相比，Dripage 具有以下独特优势：
 
-**STDIO Mode (for production):**
-```bash
-PYTHONPATH="G:\code\agent-use\dripage" uv run mcp_server.py
-```
+- 🖥️ **多浏览器管理**：支持通过命令行管理多个浏览器实例，灵活控制不同的浏览器会话
+- 👁️ **视觉定位**：支持视觉定位网页元素，无需依赖传统的选择器
+- 📋 **视觉获取 HTML**：支持通过视觉获得网页元素的 HTML 信息，便于通过 CSS 选择器定位元素
+- 🎯 **人类模拟点击**：能像人类一样模拟点击操作，有效规避反爬检测
 
-### 2. Use with mcporter CLI
+## 快速开始 (CLI)
 
-```bash
-mcporter --config config/mcporter-http.json dripage --schema
-# Save current page as markdown
-mcporter call --config config/mcporter-http.json dripage.get
-
-# Navigate and save
-mcporter call --config config/mcporter-http.json dripage.get url:'https://example.com' formats:'["markdown"]'
-
-# Save multiple formats
-mcporter call --config config/mcporter-http.json dripage.get url:'https://example.com' formats:'["markdown","html","img"]'
-```
-
-### 3. Use with MCP Clients (Claude Desktop, Cursor, etc.)
-
-Configure in your MCP client settings using `config/mcporter.json` or `config/mcporter-http.json`.
-
-### 4. MCP Server Management
-
-Use's MCP manager to control's server lifecycle:
+### 1. 安装
 
 ```bash
-# Start server (HTTP mode, port 8000)
-uv run mcp_manager.py start
+# 克隆仓库
+git clone <repository-url>
+cd dripage
 
-# Check server status
-uv run mcp_manager.py status
+# 安装依赖（需要 Python 3.13+）
+uv sync
 
-# View recent logs
-uv run mcp_manager.py logs --lines 50
-
-# Restart server
-uv run mcp_manager.py restart
-
-# Stop server
-uv run mcp_manager.py stop
+# 设置环境变量
+cp .env.example .env
+# 编辑 .env 并填入你的 API 密钥
 ```
 
-**Custom startup:**
+### 全局安装（可选）
+
 ```bash
-# Start on custom port
-uv run mcp_manager.py start --port 8080
+# Windows: 运行安装脚本
+install.cmd
 
-# Start STDIO mode
-uv run mcp_manager.py start --transport stdio
+# Linux/Mac: 运行安装脚本
+bash install.sh
+
+# 安装后，可在任何位置直接使用 dripage 命令
+dripage --help
 ```
 
-**Custom startup:**
+### 2. 配置环境
+
+编辑 `.env` 文件并添加所需的 API 密钥：
+
 ```bash
-# Start on custom port
-uv run mcp_manager.py start --port 8080
-
-# Start STDIO mode
-uv run mcp_manager.py start --transport stdio
+# 视觉分析必需
+ZAI_API_KEY="your_zhipuai_api_key_here"
 ```
 
-The manager automatically handles:
-- Process lifecycle (start/stop/restart)
-- PID tracking and state persistence
-- Log file management
-- Health checks
+### 3. 启动浏览器
 
-## Configuration
+```bash
+# 使用默认配置启动浏览器
+uv run .\cli.py browser start
 
-Main configuration file: `config/mcp_config.yaml`
+# 或使用自定义配置启动
+uv run .\cli.py browser start --address 127.0.0.1:19222
+```
+
+### 4. 常用命令
+
+```bash
+# 导航到网页
+uv run .\cli.py tab new --url https://example.com
+
+# 获取页面内容为 markdown
+uv run .\cli.py get
+
+# 截取屏幕截图
+uv run .\cli.py screenshot
+
+# 使用视觉分析页面
+uv run .\cli.py vision "这个页面上有什么？"
+
+# 在坐标处点击
+uv run .\cli.py click 100 200
+
+# 列出标签页
+uv run .\cli.py tab list
+
+# 获取帮助
+uv run .\cli.py --help
+```
+
+### 5. 与 AI 协作（OpenCode、Claude 等）
+
+使用 AI 代理时，可以直接要求使用 `dripage` CLI 命令：
+
+> "导航到 https://github.com 并截取屏幕截图"
+
+> "找到搜索框并输入 'test'"
+
+> "获取页面内容为 markdown"
+
+完整的 CLI 文档请参阅 [README_CLI.md](README_CLI.md)。
+
+---
+
+## MCP 服务器（可选）
+
+### 快速开始
+
+```bash
+# 启动 MCP 服务器（HTTP 模式，用于测试）
+uv run mcp_server.py http
+
+# 或启动 MCP 服务器（STDIO 模式，用于生产）
+uv run mcp_server.py
+```
+
+### 配置
+
+编辑 `config/mcp_config.yaml` 来配置浏览器和视觉设置：
 
 ```yaml
 browser:
-  address: "127.0.0.1:19222"  # Browser connection address
-
-output:
-  directory: "output/data"       # Output directory
+  address: "127.0.0.1:19222"
 
 vision:
-  model: "glm-4v-flash"         # Vision model
+  model: "glm-4v-flash"
   temperature: 0.7
   max_tokens: 1024
 ```
 
-For detailed configuration and MCP tools documentation, see [config/README.md](config/README.md).
+详细的 MCP 文档请参阅 [MCP_SERVER_README.md](MCP_SERVER_README.md)。
 
-## MCP Tools
+---
 
-### Core Tools
+## 高级配置
 
-- `get` - Save page content in various formats
-- `browser_navigate_tool` - Navigate to URL
-- `browser_get_current_page_tool` - Get current page info
-- `browser_screenshot_tool` - Take screenshot
-- `browser_click_tool` - Click at coordinates
-- `browser_input_tool` - Input text at coordinates
-- `browser_press_key_tool` - Press keyboard keys
-- `browser_scroll_tool` - Scroll page
+### 浏览器管理
 
-### Vision & Analysis Tools
+```bash
+# 检查浏览器状态
+uv run .\cli.py browser status
 
-- `vision_analyze_tool` - Analyze images with GLM-4V
-- `locate_element_tool` - Find elements using vision + coordinates
-- `coordinate_convert_box_tool` - Convert GLM-4V coordinates
-- `coordinate_parse_and_convert_tool` - Parse and convert coordinates
-- `coordinate_convert_from_image_tool` - Convert based on image dimensions
+# 停止浏览器
+uv run .\cli.py browser stop
 
-## Requirements
+# 获取 CDP URL
+uv run .\cli.py browser cdp
+```
 
-- Python 3.10+
-- Chrome/Chromium browser
+### 标签页管理
+
+```bash
+# 列出所有标签页
+uv run .\cli.py tab list
+
+# 创建新标签页
+uv run .\cli.py tab new --url https://example.com
+
+# 切换到标签页（按索引）
+uv run .\cli.py tab switch 0
+
+# 关闭标签页
+uv run .\cli.py tab close 0
+```
+
+### 网络数据包捕获
+
+```bash
+# 开始捕获 JSON 响应
+uv run .\cli.py capture start --content-type application/json
+
+# 查询捕获的数据包
+uv run .\cli.py capture query --limit 10
+
+# 停止捕获
+uv run .\cli.py capture stop
+```
+
+---
+
+## 文档
+
+- [README_CLI.md](README_CLI.md) - 完整的 CLI 参考
+- [MCP_SERVER_README.md](MCP_SERVER_README.md) - MCP 服务器文档
+- [AGENTS.md](AGENTS.md) - 项目特定的编码指南
+- [example/README.md](example/README.md) - 使用示例
+
+---
+
+## 环境要求
+
+- Python 3.13+
+- Chrome/Chromium 浏览器
 - [DrissionPage](https://github.com/g1879/DrissionPage)
 - FastMCP
 - MarkItDown
 
-## License
+## 许可证
 
 MIT

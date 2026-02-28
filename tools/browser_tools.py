@@ -9,11 +9,12 @@ Browser Tools - 浏览器操作工具
 import json
 import os
 import sys
+import yaml
 from pathlib import Path
 from typing import Optional, Union
 from datetime import datetime
+import json
 from langchain_core.tools import tool
-import yaml
 
 # 添加项目目录到路径
 project_dir = Path(__file__).resolve().parent.parent
@@ -140,7 +141,6 @@ def browser_get_current_page(tab_id: Optional[Union[int, str]] = None) -> str:
     Returns:
         当前页面的标题和 URL（JSON 格式）
     """
-    import json
     from tools.tab_manager import get_tab_object
 
     config = get_config()
@@ -183,7 +183,6 @@ def browser_screenshot(
     Returns:
         截图文件路径和标签信息（JSON 格式）
     """
-    import json
     from tools.tab_manager import get_tab_object
 
     config = get_config()
@@ -237,7 +236,6 @@ def browser_click(x: int, y: int, tab_id: Optional[Union[int, str]] = None) -> s
     Returns:
         成功消息和标签信息（JSON 格式）
     """
-    import json
     from tools.tab_manager import get_tab_object
 
     config = get_config()
@@ -291,7 +289,6 @@ def browser_input(
     """
     from DrissionPage.common import Keys
     import time
-    import json
     from tools.tab_manager import get_tab_object
 
     config = get_config()
@@ -350,7 +347,6 @@ def browser_press_key(
     Returns:
         成功消息和标签信息（JSON 格式）
     """
-    import json
     from tools.tab_manager import get_tab_object
 
     config = get_config()
@@ -398,7 +394,6 @@ def browser_scroll(
     Returns:
         成功消息和标签信息（JSON 格式）
     """
-    import json
     from tools.tab_manager import get_tab_object
 
     config = get_config()
@@ -434,6 +429,161 @@ def browser_scroll(
         return json.dumps({"error": error_msg}, ensure_ascii=False)
 
 
+def get_element_at_position(x: int, y: int, tab_id: Optional[Union[int, str]] = None) -> str:
+    """
+    获取指定坐标位置的元素信息（HTML、XPath 等）
+    使用 CDP (Chrome DevTools Protocol) 的 DOM.getNodeForLocation
+
+    Args:
+        x: X 坐标
+        y: Y 坐标
+        tab_id: 标签标识符（None=当前标签，int=索引，str=tab_id）
+
+    Returns:
+        元素信息的 JSON 格式字符串
+    """
+    from tools.tab_manager import get_tab_object
+
+    config = get_config()
+
+    if config.logging:
+        logger.info(f"获取坐标 ({x}, {y}) 的元素信息, tab_id={tab_id}")
+
+    try:
+        tab, metadata = get_tab_object(tab_id)
+
+        # 使用 CDP 获取指定位置的 DOM 节点
+        # DOM.getNodeForLocation 返回 {backendNodeId, nodeId}
+        node_result = tab.run_cdp('DOM.getNodeForLocation', x=x, y=y)
+
+        if not node_result or 'nodeId' not in node_result:
+            if config.logging:
+                logger.warning(f"坐标 ({x}, {y}) 处未找到 DOM 节点, node_result={node_result}")
+
+            result = {
+                "status": "error",
+                "error": f"坐标 ({x}, {y}) 处未找到元素",
+                "position": {"x": x, "y": y},
+                "tab": metadata,
+                "debug": {
+                    "cdp_result": node_result
+                }
+            }
+
+            return json.dumps(result, ensure_ascii=False, indent=2)
+
+        node_id = node_result['nodeId']
+        backend_node_id = node_result.get('backendNodeId')
+
+        if config.logging:
+            logger.info(f"找到 DOM 节点: nodeId={node_id}, backendNodeId={backend_node_id}")
+
+        # 使用 CDP 获取节点的描述符
+        describe_result = tab.run_cdp('DOM.describeNode', nodeId=node_id)
+
+        if not describe_result or 'node' not in describe_result:
+            result = {
+                "status": "error",
+                "error": "无法获取节点描述",
+                "position": {"x": x, "y": y},
+                "tab": metadata,
+                "debug": {
+                    "cdp_node_result": node_result,
+                    "cdp_describe_result": describe_result
+                }
+            }
+
+            return json.dumps(result, ensure_ascii=False, indent=2)
+
+        node = describe_result['node']
+        node_name = node.get('nodeName', '')
+        attributes = node.get('attributes', [])
+        node_value = node.get('nodeValue', '')
+
+        # 构建 attributes 字典
+        attrs_dict = {}
+        for i in range(0, len(attributes), 2):
+            if i + 1 < len(attributes):
+                key = attributes[i]
+                value = attributes[i + 1]
+                attrs_dict[key] = value
+
+        # 使用 CDP 获取节点的外部 HTML
+        # DOM.getOuterHTML 需要 nodeId
+        outer_html_result = tab.run_cdp('DOM.getOuterHTML', nodeId=node_id)
+        outer_html = outer_html_result.get('outerHTML', '') if outer_html_result else ''
+
+        # 使用 JavaScript 获取更多信息（XPath、textContent 等）
+        js_code = f'''
+        (function() {{
+            let element = document.elementFromPoint({x}, {y});
+            if (!element) return null;
+
+            // 生成 XPath
+            function getXPath(el) {{
+                if (el.id && el.id !== '') return '//*[@id="' + el.id + '"]';
+                if (el === document.body) return el.tagName.toLowerCase();
+
+                let ix = 0;
+                let siblings = el.parentNode.children;
+                for (let i = 0; i < siblings.length; i++) {{
+                    if (siblings[i] === el) {{
+                        ix = i + 1;
+                        break;
+                    }}
+                }}
+                return getXPath(el.parentNode) + '/' + el.tagName.toLowerCase() + '[' + ix + ']';
+            }}
+
+            return {{
+                xpath: getXPath(element),
+                textContent: (element.textContent || '').substring(0, 100)
+            }};
+        }})();
+        '''
+
+        js_result = tab.run_js(js_code)
+
+        # 构建返回结果
+        element_info = {
+            "tagName": node_name,
+            "id": attrs_dict.get('id', ''),
+            "className": attrs_dict.get('class', ''),
+            "name": attrs_dict.get('name', ''),
+            "type": attrs_dict.get('type', ''),
+            "placeholder": attrs_dict.get('placeholder', ''),
+            "value": node_value or attrs_dict.get('value', ''),
+            "xpath": js_result.get('xpath', '') if js_result else '',
+            "textContent": js_result.get('textContent', '') if js_result else '',
+            "outerHTML": outer_html[:500],
+            "attributes": attrs_dict
+        }
+
+        if config.logging:
+            logger.info(f"获取到元素: {element_info.get('tagName')} (id={element_info.get('id')})")
+
+        result = {
+            "status": "success",
+            "position": {"x": x, "y": y},
+            "element": element_info,
+            "cdp": {
+                "nodeId": node_id,
+                "backendNodeId": backend_node_id
+            },
+            "tab": metadata
+        }
+
+        return json.dumps(result, ensure_ascii=False, indent=2)
+
+    except Exception as e:
+        error_msg = f"获取元素信息失败: {str(e)}"
+        if config.logging:
+            logger.error(f"{error_msg}")
+            import traceback
+            logger.error(traceback.format_exc())
+        return json.dumps({"status": "error", "error": error_msg}, ensure_ascii=False)
+
+
 # 导出所有工具函数，方便 FastMCP 或其他框架调用
 __all__ = [
     'browser_navigate',
@@ -443,6 +593,7 @@ __all__ = [
     'browser_input',
     'browser_press_key',
     'browser_scroll',
+    'get_element_at_position',
     'get_config',
     'get_browser',
 ]

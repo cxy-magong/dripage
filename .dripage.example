@@ -1,0 +1,31 @@
+# Dripage 项目配置示例
+# 将此文件复制到项目根目录，重命名为 .dripage/config
+
+# 应用/项目标识符
+app_id: my_project
+
+# 浏览器名称（必须在 config/browsers.yaml 中定义）
+browser: browser1
+
+# 输出配置
+output:
+  directory: G:\code\my_project\output
+
+# Vision 模型配置（可选）
+vision:
+  model: glm-4v-flash
+  temperature: 0.7
+  max_tokens: 1024
+
+# 抓包配置（可选）
+capture:
+  enabled: false
+  output_dir: output/packets
+  filters: {}
+  save_all: false
+
+# 注意事项：
+# 1. browser 名称必须在 config/browsers.yaml 中定义
+# 2. output.directory 建议使用绝对路径
+# 3. 其他配置项都是可选的，会使用全局默认值
+# 4. 可以将此文件提交到 Git，方便团队协作
